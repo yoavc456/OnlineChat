@@ -15,41 +15,27 @@ import java.net.Socket
 
 class UserEntry() : StageHandler() {
 
-    override suspend fun start(stageData: StageData): StageData {
-        val serverDataManager = ServerDataManager.getInstance()
+    val serverDataManager = ServerDataManager.getInstance()
+    lateinit var stageData: StageData
 
+    var run: Boolean = true
+    var username: String = ""
+
+    lateinit var msg: EntryMessage
+    var result: StageData? = null
+
+    override suspend fun start(stageData: StageData): StageData {
+        this.stageData = stageData
         serverDataManager.SOCKETS.add(stageData.socket)
-        var run: Boolean = true
-        var username: String = ""
 
         while (run) {
-
             try {
-                val input = ObjectInputStream(stageData.socket.getInputStream())
-                val msg = input.readObject() as EntryMessage
-                username = msg.username
-
-                if (msg.action == MessageAction.CLOSE) {
-                    serverDataManager.SOCKETS.remove(stageData.socket)
-                    stageData.socket.close()
-                    return StageData(stageData.socket, StageName.CLOSE, "", "")
-                }
-
-                if (msg.action == MessageAction.LOG_IN) {
-                    run = !logIn(stageData.socket, msg)
-                    val entryAcceptMessage: String = if (!run) "Logged In" else "Log In Failed"
-                    serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
-                }
-
-                if (msg.action == MessageAction.REGISTER) {
-                    run = !register(stageData.socket, msg)
-                    val entryAcceptMessage: String = if (!run) "Register" else "Register Failed"
-                    serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
-                }
+                waitingForClientInput()
+                handleClientInput()
+                if (result != null)
+                    return result as StageData
             } catch (e: Exception) {
-                serverDataManager.SOCKETS.remove(stageData.socket)
-                stageData.socket.close()
-                println("a")
+                clientDisconnected()
                 return StageData(stageData.socket, StageName.CLOSE, "", "")
             }
 
@@ -65,7 +51,6 @@ class UserEntry() : StageHandler() {
             serverDataManager.LOGGED_IN_SOCKETS.put(msg.username, socket)
             return true
         }
-
         return false
     }
 
@@ -81,5 +66,37 @@ class UserEntry() : StageHandler() {
         }
 
         return false
+    }
+
+    private fun waitingForClientInput() {
+        val input = ObjectInputStream(stageData.socket.getInputStream())
+        msg = input.readObject() as EntryMessage
+        username = msg.username
+    }
+
+    private suspend fun handleClientInput() {
+        if (msg.action == MessageAction.CLOSE) {
+            serverDataManager.SOCKETS.remove(stageData.socket)
+            stageData.socket.close()
+            result = StageData(stageData.socket, StageName.CLOSE, "", "")
+        }
+
+        if (msg.action == MessageAction.LOG_IN) {
+            run = !logIn(stageData.socket, msg)
+            val entryAcceptMessage: String = if (!run) "Logged In" else "Log In Failed"
+            serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
+        }
+
+        if (msg.action == MessageAction.REGISTER) {
+            run = !register(stageData.socket, msg)
+            val entryAcceptMessage: String = if (!run) "Register" else "Register Failed"
+            serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
+        }
+    }
+
+    private fun clientDisconnected() {
+        serverDataManager.SOCKETS.remove(stageData.socket)
+        stageData.socket.close()
+        println("a")
     }
 }

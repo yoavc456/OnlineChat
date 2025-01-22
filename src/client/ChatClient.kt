@@ -13,13 +13,13 @@ class ChatClient {
     private val PORT: Int = 1234
 
     private lateinit var SOCKET: Socket
+
     private var user_name: String = ""
     private var chat_name: String = ""
     private var admin: Boolean = false
 
     constructor() {
         createConnection()
-
         try {
             userEntry()
             if (!user_name.equals(""))

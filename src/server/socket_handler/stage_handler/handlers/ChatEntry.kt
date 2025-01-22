@@ -12,50 +12,25 @@ import utils.loadMessages
 import java.io.ObjectInputStream
 
 class ChatEntry : StageHandler() {
+    val serverDataManager = ServerDataManager.getInstance()
+    lateinit var stageData: StageData
+
+    private var run: Boolean = true
+    private var chatname: String = ""
+
+    lateinit var msg: EntryMessage
+    var result: StageData? = null
 
     override suspend fun start(stageData: StageData): StageData {
-        val serverDataManager = ServerDataManager.getInstance()
-
-        var run: Boolean = true
-        var chatname: String = ""
+        this.stageData = stageData
         while (run) {
             try {
-                val serverDataManager = ServerDataManager.getInstance()
-
-                val input = ObjectInputStream(stageData.socket.getInputStream())
-                val msg = input.readObject() as EntryMessage
-                chatname = msg.chatname
-
-                if (msg.action == MessageAction.CLOSE) {
-                    serverDataManager.LOGGED_IN_SOCKETS.remove(msg.username)
-                    stageData.socket.close()
-                    return StageData(stageData.socket, StageName.CLOSE, "", "")
-                }
-
-                if (msg.action == MessageAction.ENTER_CHAT) {
-                    run = !enterChat(msg)
-
-                    val entryAcceptMessage: String = if (!run) "Entered Chat" else "Chat Does Not Exist"
-                    if (!run)
-                        serverDataManager.sendMessage(
-                            EntryAcceptMessage(
-                                true, entryAcceptMessage,
-                                loadMessages(msg.chatname), getChatAdmin(msg.chatname)
-                            ), stageData.socket
-                        )
-                    else
-                        serverDataManager.sendMessage(EntryAcceptMessage(false, entryAcceptMessage), stageData.socket)
-                }
-
-                if (msg.action == MessageAction.CREATE_CHAT) {
-                    run = !createChat(msg)
-                    val entryAcceptMessage: String = if (!run) "Chat Created" else "Chat Does Not Created"
-                    serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
-                }
+                waitingForClientInput()
+                handleClientInput()
+                if(result != null)
+                    return result as StageData
             } catch (e: Exception) {
-                serverDataManager.LOGGED_IN_SOCKETS.remove(stageData.username)
-                stageData.socket.close()
-                println("aa")
+                clientDisconnected()
                 return StageData(stageData.socket, StageName.CLOSE, "", "")
             }
 
@@ -64,8 +39,6 @@ class ChatEntry : StageHandler() {
     }
 
     private suspend fun enterChat(msg: EntryMessage): Boolean {
-        val serverDataManager = ServerDataManager.getInstance()
-
         if (utils.enterChat(msg.chatname, msg.username)) {
             if (serverDataManager.CHATS.get(msg.chatname) == null) {
                 val chatUsers = mutableListOf<String>()
@@ -81,8 +54,6 @@ class ChatEntry : StageHandler() {
     }
 
     private suspend fun createChat(msg: EntryMessage): Boolean {
-        val serverDataManager = ServerDataManager.getInstance()
-
         if (utils.createChat(msg.chatname, msg.username)) {
             val chatUsers = mutableListOf<String>()
             chatUsers.add(msg.username)
@@ -91,5 +62,46 @@ class ChatEntry : StageHandler() {
         }
 
         return false
+    }
+
+    private fun waitingForClientInput(){
+        val input = ObjectInputStream(stageData.socket.getInputStream())
+        msg = input.readObject() as EntryMessage
+        chatname = msg.chatname
+    }
+
+    private suspend fun handleClientInput(){
+        if (msg.action == MessageAction.CLOSE) {
+            serverDataManager.LOGGED_IN_SOCKETS.remove(msg.username)
+            stageData.socket.close()
+            result = StageData(stageData.socket, StageName.CLOSE, "", "")
+        }
+
+        if (msg.action == MessageAction.ENTER_CHAT) {
+            run = !enterChat(msg)
+
+            val entryAcceptMessage: String = if (!run) "Entered Chat" else "Chat Does Not Exist"
+            if (!run)
+                serverDataManager.sendMessage(
+                    EntryAcceptMessage(
+                        true, entryAcceptMessage,
+                        loadMessages(msg.chatname), getChatAdmin(msg.chatname)
+                    ), stageData.socket
+                )
+            else
+                serverDataManager.sendMessage(EntryAcceptMessage(false, entryAcceptMessage), stageData.socket)
+        }
+
+        if (msg.action == MessageAction.CREATE_CHAT) {
+            run = !createChat(msg)
+            val entryAcceptMessage: String = if (!run) "Chat Created" else "Chat Does Not Created"
+            serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
+        }
+    }
+
+    private fun clientDisconnected(){
+        serverDataManager.LOGGED_IN_SOCKETS.remove(stageData.username)
+        stageData.socket.close()
+        println("aa")
     }
 }
