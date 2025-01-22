@@ -9,8 +9,8 @@ import java.net.Socket
 
 class ChatClient {
 
-    private val IP_ADDRESS:String = "localhost"
-    private val PORT:Int = 1234
+    private val IP_ADDRESS: String = "localhost"
+    private val PORT: Int = 1234
 
     private lateinit var SOCKET: Socket
     private var user_name: String = ""
@@ -62,7 +62,7 @@ class ChatClient {
         }
     }
 
-    private fun createConnection(){
+    private fun createConnection() {
         try {
             SOCKET = Socket(IP_ADDRESS, PORT)
         } catch (e: Exception) {
