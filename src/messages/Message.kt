@@ -11,6 +11,6 @@ data class Message(
     val chatname:String="",
     val success:Boolean=true,
     val message:String="",
-    val chatMessages:List<TextMessage>?=null,
+    val chatMessages:List<Message>?=null,
     val admin:String=""
 ): Serializable

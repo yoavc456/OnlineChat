@@ -21,19 +21,12 @@ class ClientDataManager private constructor() {
     }
 
     fun sendMsg(msg: Any) {
-        println(msg.javaClass.simpleName)
         val output = ObjectOutputStream(SOCKET.getOutputStream())
         output.writeObject(msg)
     }
 
     fun closeClient() {
-        if (user_name.equals("") || chat_name.equals(""))
-            sendMsg(EntryMessage(MessageAction.CLOSE, user_name))
-        else
-            sendMsg(TextMessage(MessageAction.CLOSE, "", user_name, "", chat_name))
-
         sendMsg(Message(Stage.CLOSE, username = user_name, chatname = chat_name))
-
         SOCKET.close()
     }
 

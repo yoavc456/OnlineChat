@@ -8,7 +8,6 @@ import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import kotlinx.coroutines.flow.first
 import messages.MessageAction
-import messages.TextMessage
 
 private val url:String = "mongodb://localhost:27017"
 private val database_name = "onlineChatDB"
@@ -144,14 +143,14 @@ suspend fun saveMessage(chatname: String, sender:String, msg:String){
     connection.close()
 }
 
-suspend fun loadMessages(chatname: String):List<TextMessage>{
+suspend fun loadMessages(chatname: String):List<messages.Message>{
     val connection = MongoClient.create(url)
     val collection: MongoCollection<Message> = connection.getDatabase(database_name).getCollection<Message>("_"+chatname)
 
-    val result = mutableListOf<TextMessage>()
+    val result = mutableListOf<messages.Message>()
 
     collection.find<Message>().collect{
-        result.add(TextMessage(MessageAction.TEXT, it.msg, it.sender))
+        result.add(messages.Message(action = MessageAction.TEXT, message = it.msg, username = it.sender))
     }
 
     connection.close()
@@ -164,7 +163,7 @@ suspend fun getChatAdmin(chatname: String):String{
 
     var result:String = ""
     val filter = Filters.eq("chatname", chatname)
-    collection.find<Chat>().collect{
+    collection.find<Chat>(filter).collect{
         result = it.admin
     }
 

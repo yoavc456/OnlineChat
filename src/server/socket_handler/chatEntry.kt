@@ -29,7 +29,7 @@ suspend fun chatEntryHandler(socket: Socket, msg:Message){
     if (msg.action == MessageAction.CREATE_CHAT) {
         val result = createChat(msg)
         val entryAcceptMessage: String = if (result) "Chat Created" else "Chat Does Not Created"
-        serverDataManager.sendMessage(EntryAcceptMessage(result, entryAcceptMessage), socket)
+        serverDataManager.sendMessage(Message(success = result, message = entryAcceptMessage), socket)
     }
 }
 

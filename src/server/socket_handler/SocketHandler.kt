@@ -20,11 +20,10 @@ class SocketHandler(private val socket: Socket){
                 handleMessage()
             }
         }catch (e:Exception){
-            println("Disconnected")
+
         }
         finally {
             closeClient()
-            println("Close")
         }
     }
 
@@ -51,7 +50,6 @@ class SocketHandler(private val socket: Socket){
             serverDataManager.SOCKETS.remove(socket)
         }
         socket.close()
-        println("END")
     }
 
 }
