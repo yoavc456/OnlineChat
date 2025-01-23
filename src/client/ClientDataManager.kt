@@ -1,8 +1,6 @@
 package client
 
-import messages.EntryMessage
-import messages.MessageAction
-import messages.TextMessage
+import messages.*
 import java.io.ObjectOutputStream
 import java.net.Socket
 
@@ -34,13 +32,15 @@ class ClientDataManager private constructor() {
         else
             sendMsg(TextMessage(MessageAction.CLOSE, "", user_name, "", chat_name))
 
+        sendMsg(Message(Stage.CLOSE, username = user_name, chatname = chat_name))
+
         SOCKET.close()
     }
 
-    fun handleReceivedTextMessage(msg: TextMessage) {
-        if (msg.receiverUserName.equals(user_name))
-            println("${msg.senderUserName} (Private Message): ${msg.message}")
+    fun handleReceivedTextMessage(msg: Message) {
+        if (msg.receiverUsername.equals(user_name))
+            println("${msg.username} (Private Message): ${msg.message}")
         else
-            println("${msg.senderUserName}: ${msg.message}")
+            println("${msg.username}: ${msg.message}")
     }
 }

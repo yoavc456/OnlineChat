@@ -9,5 +9,6 @@ enum class MessageAction {
     PRIVATE_CHAT,
     ADD_USER_TO_CHAT,
     TEXT,
-    CLOSE
+    CLOSE,
+    NULL
 }
