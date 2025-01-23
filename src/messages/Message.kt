@@ -12,5 +12,6 @@ data class Message(
     val success:Boolean=true,
     val message:String="",
     val chatMessages:List<Message>?=null,
-    val admin:String=""
+    val admin:String="",
+    var read:Boolean=false
 ): Serializable

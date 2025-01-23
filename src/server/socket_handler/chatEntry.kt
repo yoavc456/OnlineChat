@@ -1,6 +1,5 @@
 package server.socket_handler
 
-import messages.EntryAcceptMessage
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager

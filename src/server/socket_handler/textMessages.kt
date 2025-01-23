@@ -7,6 +7,8 @@ import utils.addUserToChat
 import utils.saveMessage
 import utils.setChatPrivacy
 
+private val serverDataManager = ServerDataManager.getInstance()
+
 suspend fun textMessagesHandler(msg:Message){
     if (msg.action == MessageAction.TEXT) {
         sendTextMessage(msg)
@@ -15,6 +17,8 @@ suspend fun textMessagesHandler(msg:Message){
         setChatPrivacy(msg.action, msg.chatname)
     } else if (msg.action == MessageAction.ADD_USER_TO_CHAT) {
         addUserToChat(msg.chatname, msg.receiverUsername)
+    }else if(msg.action == MessageAction.OUT_OF_CHAT){
+        serverDataManager.CHATS.get(msg.chatname)?.remove(msg.username)
     }
 }
 

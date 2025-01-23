@@ -11,6 +11,7 @@ class ClientDataManager private constructor() {
     var admin: Boolean = false
 
     lateinit var SOCKET: Socket
+    var stage = Stage.USER_ENTRY
 
 
     companion object{
@@ -21,12 +22,15 @@ class ClientDataManager private constructor() {
     }
 
     fun sendMsg(msg: Any) {
+        if(SOCKET.isClosed)
+            return
         val output = ObjectOutputStream(SOCKET.getOutputStream())
         output.writeObject(msg)
     }
 
     fun closeClient() {
         sendMsg(Message(Stage.CLOSE, username = user_name, chatname = chat_name))
+        stage = Stage.CLOSE
         SOCKET.close()
     }
 

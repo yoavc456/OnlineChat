@@ -9,17 +9,15 @@ class ChatClient {
     private val IP_ADDRESS: String = "localhost"
     private val PORT: Int = 1234
 
-    var stage = Stage.USER_ENTRY
-
     constructor() {
         try {
             createConnection()
             chatIsOpen()
         } catch (e: Exception) {
-            clientDataManager.SOCKET.close()
+//            clientDataManager.SOCKET.close()
             println("Disconnected From The Server!")
         }finally {
-            close()
+            clientDataManager.closeClient()
         }
     }
 
@@ -28,22 +26,25 @@ class ChatClient {
             clientDataManager.SOCKET = Socket(IP_ADDRESS, PORT)
         } catch (e: Exception) {
             println("Didn't Connect To The Server!")
-            return
+            clientDataManager.stage = Stage.CLOSE
         }
     }
 
-    private fun chatIsOpen(){
-        while (stage != Stage.CLOSE){
-            if(stage == Stage.USER_ENTRY)
+    private fun chatIsOpen()= runBlocking{
+        GlobalScope.launch {
+            receiveFromServerCoroutine()
+        }
+        while (clientDataManager.stage != Stage.CLOSE){
+            if(clientDataManager.stage == Stage.USER_ENTRY)
                 userEntryHandler()
-            else if(stage == Stage.CHAT_ENTRY)
+            else if(clientDataManager.stage == Stage.CHAT_ENTRY)
                 chatEntryHandler()
-            else if(stage == Stage.TEXT_MESSAGES)
+            else if(clientDataManager.stage == Stage.TEXT_MESSAGES)
                 textMessagesHandler()
         }
     }
 
-    private fun userEntryHandler(){
+    private suspend fun userEntryHandler(){
         println("l(LogIn)/r(Register)/c(Close)")
         var answer = readln()
 
@@ -53,15 +54,15 @@ class ChatClient {
         else if (answer.equals("r"))
             result = register()
         else if (answer.equals("c")) {
-            stage = Stage.CLOSE
+            clientDataManager.stage = Stage.CLOSE
             clientDataManager.closeClient()
         }
 
         if(result)
-            stage = Stage.CHAT_ENTRY
+            clientDataManager.stage = Stage.CHAT_ENTRY
     }
 
-    private fun chatEntryHandler(){
+    private suspend fun chatEntryHandler(){
         println("e(Enter A Chat)/cr(Create A Chat)/c(Close)")
         var result = false
         val answer = readln()
@@ -71,32 +72,27 @@ class ChatClient {
             result = createChat()
         } else if (answer.equals("c")) {
             result = false
+            clientDataManager.stage = Stage.CLOSE
             clientDataManager.closeClient()
         }
 
         if(result)
-            stage = Stage.TEXT_MESSAGES
+            clientDataManager.stage = Stage.TEXT_MESSAGES
     }
 
     private fun textMessagesHandler(){
-        val scope = CoroutineScope(Dispatchers.Default)
-        scope.launch {
-            waitForTextInputCoroutine()
-        }
+//        val scope = CoroutineScope(Dispatchers.Default)
+//        scope.launch {
+//            waitForTextInputCoroutine()
+//        }
+//
+//        while (!clientDataManager.SOCKET.isClosed){
+//
+//        }
+//
+//        clientDataManager.closeClient()
+//        clientDataManager.stage = Stage.CLOSE
 
-        scope.launch {
-            receiveFromServerCoroutine()
-        }
-
-        while (!clientDataManager.SOCKET.isClosed){
-
-        }
-        stage = Stage.CLOSE
-    }
-
-    private fun close(){
-        println(clientDataManager.chat_name)
-        println(clientDataManager.user_name)
-        clientDataManager.SOCKET.close()
+        waitForTextInputCoroutine()
     }
 }

@@ -10,5 +10,7 @@ enum class MessageAction {
     ADD_USER_TO_CHAT,
     TEXT,
     CLOSE,
+    OUT_OF_CHAT,
+    OUT_OF_USER,
     NULL
 }

@@ -1,5 +1,6 @@
 package client
 
+import kotlinx.coroutines.delay
 import messages.Message
 import messages.MessageAction
 import messages.Stage
@@ -7,7 +8,9 @@ import java.io.ObjectInputStream
 
 val clientDataManager = ClientDataManager.getInstance()
 
-fun logIn(): Boolean {
+var lastMessage:Message = Message(read = true)
+
+suspend fun logIn(): Boolean {
     print("UserName: ")
     val userName: String = readln()
     print("Password: ")
@@ -15,8 +18,9 @@ fun logIn(): Boolean {
 
     clientDataManager.sendMsg(Message(stage = Stage.USER_ENTRY, action = MessageAction.LOG_IN, username = userName, password=password))
 
-    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-    val msg = input.readObject() as Message
+//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
+//    val msg = input.readObject() as Message
+    val msg = getLastMessage(3000)
 
     println(msg.message)
     if (msg.success) {
@@ -27,7 +31,7 @@ fun logIn(): Boolean {
     return false
 }
 
-fun register(): Boolean {
+suspend fun register(): Boolean {
     print("UserName: ")
     val userName: String = readln()
     print("Password: ")
@@ -42,8 +46,10 @@ fun register(): Boolean {
 
     clientDataManager.sendMsg(Message(stage=Stage.USER_ENTRY, action = MessageAction.REGISTER, username = userName, password = password))
 
-    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-    val msg = input.readObject() as Message
+//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
+//    val msg = input.readObject() as Message
+
+    val msg = getLastMessage(3000)
 
     println(msg.message)
     if (msg.success) {
@@ -54,15 +60,16 @@ fun register(): Boolean {
     return false
 }
 
-fun enterChat(): Boolean {
+suspend fun enterChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
     clientDataManager.sendMsg(Message(stage=Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
         username = clientDataManager.user_name, chatname = chatName))
 
-    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-    val msg = input.readObject() as Message
+//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
+//    val msg = input.readObject() as Message
+    val msg = getLastMessage(3000)
 
     println(msg.message)
     if (msg.success) {
@@ -80,15 +87,17 @@ fun enterChat(): Boolean {
     return false
 }
 
-fun createChat(): Boolean {
+suspend fun createChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
     clientDataManager.sendMsg(Message(stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
         username = clientDataManager.user_name, chatname = chatName))
 
-    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-    val msg = input.readObject() as Message
+//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
+//    val msg = input.readObject() as Message
+
+    val msg = getLastMessage(3000)
 
     println(msg.message)
     if (msg.success) {
@@ -101,10 +110,8 @@ fun createChat(): Boolean {
 }
 
 fun waitForTextInputCoroutine() {
-    while (!clientDataManager.SOCKET.isClosed) {
-        val msg = readln()
-        handleTextInput(msg)
-    }
+    val msg = readln()
+    handleTextInput(msg)
 }
 
 fun receiveFromServerCoroutine() {
@@ -112,7 +119,12 @@ fun receiveFromServerCoroutine() {
         try {
             val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
             val msg = input.readObject() as Message
-            clientDataManager.handleReceivedTextMessage(msg)
+
+            if(clientDataManager.stage == Stage.TEXT_MESSAGES)
+                clientDataManager.handleReceivedTextMessage(msg)
+            else
+                lastMessage = msg
+
         } catch (e: Exception) {
             clientDataManager.SOCKET.close()
             println("Disconnected From The Server!")
@@ -130,7 +142,11 @@ fun handleTextInput(msg: String) {
 
         if (answer.equals("c"))
             clientDataManager.closeClient()
-        else if (answer.equals("pu") && clientDataManager.admin)
+        else if (answer.equals("aaa")){
+            clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.OUT_OF_CHAT,
+                chatname = clientDataManager.chat_name, username = clientDataManager.user_name))
+            clientDataManager.stage = Stage.CHAT_ENTRY
+        } else if (answer.equals("pu") && clientDataManager.admin)
             clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.PUBLIC_CHAT, chatname = clientDataManager.chat_name))
         else if (answer.equals("pr") && clientDataManager.admin)
             clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.PRIVATE_CHAT, chatname = clientDataManager.chat_name))
@@ -144,4 +160,17 @@ fun handleTextInput(msg: String) {
     }
 
     clientDataManager.sendMsg(Message(stage=Stage.TEXT_MESSAGES, action = MessageAction.TEXT, message = msg, username = clientDataManager.user_name, chatname = clientDataManager.chat_name))
+}
+
+private suspend fun getLastMessage(maxWaitingTimeMillis:Long):Message{
+    val time = System.currentTimeMillis()
+    while (System.currentTimeMillis()-time<maxWaitingTimeMillis){
+        if(!lastMessage.read){
+            lastMessage.read = true
+            return lastMessage
+        }
+        delay(100)
+    }
+    //TODO: Right exception
+    throw IllegalArgumentException()
 }
