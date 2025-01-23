@@ -22,6 +22,7 @@ class ChatEntry : StageHandler() {
     var result: StageData? = null
 
     override suspend fun start(stageData: StageData): StageData {
+        restart()
         this.stageData = stageData
         while (run) {
             try {
@@ -65,12 +66,16 @@ class ChatEntry : StageHandler() {
     }
 
     private fun waitingForClientInput(){
+        println("w1")
         val input = ObjectInputStream(stageData.socket.getInputStream())
+        println("w1.1")
         msg = input.readObject() as EntryMessage
         chatname = msg.chatname
+        println("w2")
     }
 
     private suspend fun handleClientInput(){
+        println("w3")
         if (msg.action == MessageAction.CLOSE) {
             serverDataManager.LOGGED_IN_SOCKETS.remove(msg.username)
             stageData.socket.close()
@@ -97,11 +102,18 @@ class ChatEntry : StageHandler() {
             val entryAcceptMessage: String = if (!run) "Chat Created" else "Chat Does Not Created"
             serverDataManager.sendMessage(EntryAcceptMessage(!run, entryAcceptMessage), stageData.socket)
         }
+        println("w4")
     }
 
     private fun clientDisconnected(){
         serverDataManager.LOGGED_IN_SOCKETS.remove(stageData.username)
         stageData.socket.close()
         println("aa")
+    }
+
+    fun restart(){
+        run = true
+        chatname = ""
+        result = null
     }
 }

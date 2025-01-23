@@ -13,7 +13,6 @@ import java.net.Socket
 class SocketHandler(private val socket: Socket){
     private val serverDataManager = ServerDataManager.getInstance()
     private val stages:MutableMap<StageName, StageHandler>
-    private var stage = StageName.USER_ENTRY
 
     init {
         stages = mutableMapOf(

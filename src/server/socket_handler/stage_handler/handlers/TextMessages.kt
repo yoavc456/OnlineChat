@@ -68,6 +68,11 @@ class TextMessages : StageHandler() {
             setChatPrivacy(msg.action, msg.chatName)
         } else if (msg.action == MessageAction.ADD_USER_TO_CHAT) {
             addUserToChat(msg.chatName, msg.receiverUserName)
+        }else if(msg.action == MessageAction.REGISTER){
+            println("OUT1")
+            serverDataManager.CHATS.get(msg.chatName)?.remove(msg.senderUserName)
+            result = StageData(stageData.socket, StageName.CHAT_ENTRY, stageData.username, "")
+            println("OUT2")
         }
     }
 
