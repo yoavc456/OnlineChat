@@ -11,7 +11,7 @@ class ChatServer {
     private val SERVER_SOCKET: ServerSocket
     private val PORT: Int = 1234
 
-    private val serverDataManager:ServerDataManager
+    private val serverDataManager: ServerDataManager
 
     init {
         SERVER_SOCKET = ServerSocket(PORT)
@@ -33,6 +33,7 @@ class ChatServer {
             addConnection(socket)
         }
     }
+
     private fun addConnection(socket: Socket) {
 
         GlobalScope.launch {

@@ -6,20 +6,14 @@ import java.net.Socket
 class ServerDataManager private constructor() {
 
 
-    val SOCKETS: MutableList<Socket>
-    val LOGGED_IN_SOCKETS: HashMap<String, Socket>
-    val CHATS: HashMap<String, MutableList<String>>
+    val SOCKETS: MutableList<Socket> = mutableListOf()
+    val LOGGED_IN_SOCKETS: HashMap<String, Socket> = hashMapOf()
+    val CHATS: HashMap<String, MutableList<String>> = HashMap()
 
-    init {
-        SOCKETS = mutableListOf()
-        LOGGED_IN_SOCKETS = hashMapOf()
-        CHATS = HashMap()
-    }
+    companion object {
+        private val serverDataManager: ServerDataManager = ServerDataManager()
 
-    companion object{
-        private val serverDataManager:ServerDataManager = ServerDataManager()
-
-        fun getInstance():ServerDataManager{
+        fun getInstance(): ServerDataManager {
             return serverDataManager
         }
     }
@@ -29,7 +23,7 @@ class ServerDataManager private constructor() {
         output.writeObject(msg)
     }
 
-    fun close(){
+    fun close() {
         for (s in SOCKETS) {
             s.close()
         }

@@ -10,7 +10,7 @@ import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
 
-suspend fun userEntryHandler(socket: Socket, msg:Message) {
+suspend fun userEntryHandler(socket: Socket, msg: Message) {
     if (msg.action == MessageAction.LOG_IN) {
         val result = logIn(socket, msg)
         val entryAcceptMessage: String = if (result) "Logged In" else "Log In Failed"
@@ -25,7 +25,7 @@ suspend fun userEntryHandler(socket: Socket, msg:Message) {
 
 }
 
-private suspend fun logIn(socket:Socket, msg:Message): Boolean {
+private suspend fun logIn(socket: Socket, msg: Message): Boolean {
     val serverDataManager = ServerDataManager.getInstance()
     if (doesUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) == null) {
         serverDataManager.SOCKETS.remove(socket)
@@ -35,7 +35,7 @@ private suspend fun logIn(socket:Socket, msg:Message): Boolean {
     return false
 }
 
-private suspend fun register(socket: Socket, msg:Message): Boolean {
+private suspend fun register(socket: Socket, msg: Message): Boolean {
     val serverDataManager = ServerDataManager.getInstance()
     if (!doesUsernameExist(msg!!.username)) {
         if (serverDataManager.LOGGED_IN_SOCKETS.get(msg!!.username) != null)

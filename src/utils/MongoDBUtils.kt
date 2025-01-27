@@ -10,55 +10,52 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
 import messages.MessageAction
 
-private val url:String = "mongodb://localhost:27017"
-private val database_name = "onlineChatDB"
+private const val URL: String = "mongodb://localhost:27017"
+private const val DATABASE_NAME = "onlineChatDB"
 
-suspend fun doesUserExist(username:String, password:String):Boolean{
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<User> = connection.getDatabase(database_name).getCollection<User>("users")
+suspend fun doesUserExist(username: String, password: String): Boolean {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<User> = connection.getDatabase(DATABASE_NAME).getCollection<User>("users")
 
     val filter = Filters.eq("username", username)
 
     var user: User? = null
 
-    collection.find<User>(filter).collect{
+    collection.find<User>(filter).collect {
         user = it
     }
 
     connection.close()
 
-    if(user == null)
+    if (user == null)
         return false
 
     return user!!.password.equals(password)
 }
 
-suspend fun doesUsernameExist(username: String):Boolean{
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<User> = connection.getDatabase(database_name).getCollection<User>("users")
+suspend fun doesUsernameExist(username: String): Boolean {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<User> = connection.getDatabase(DATABASE_NAME).getCollection<User>("users")
 
     val filter = Filters.eq("username", username)
 
     var user: User? = null
 
-    collection.find<User>(filter).collect{
+    collection.find<User>(filter).collect {
         user = it
     }
 
     connection.close()
 
-    if(user == null)
-        return false
-
-    return true
+    return user != null
 }
 
-suspend fun createUser(username: String, password: String):Boolean{
-    if(doesUsernameExist(username))
+suspend fun createUser(username: String, password: String): Boolean {
+    if (doesUsernameExist(username))
         return false
 
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<User> = connection.getDatabase(database_name).getCollection<User>("users")
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<User> = connection.getDatabase(DATABASE_NAME).getCollection<User>("users")
 
     val user = User(username, password)
     collection.insertOne(user)
@@ -67,32 +64,32 @@ suspend fun createUser(username: String, password: String):Boolean{
     return true
 }
 
-suspend fun doesChatExist(chatname: String):Boolean{
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
+suspend fun doesChatExist(chatname: String): Boolean {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Chat> = connection.getDatabase(DATABASE_NAME).getCollection<Chat>("chats")
 
     val filter = Filters.eq("chatname", chatname)
 
     var chat: Chat? = null
 
-    collection.find<Chat>(filter).collect{
+    collection.find<Chat>(filter).collect {
         chat = it
     }
 
     connection.close()
 
-    if(chat == null)
+    if (chat == null)
         return false
 
     return true
 }
 
-suspend fun createChat(chatname:String, adming:String):Boolean{
-    if(doesChatExist(chatname))
+suspend fun createChat(chatname: String, adming: String): Boolean {
+    if (doesChatExist(chatname))
         return false
 
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Chat> = connection.getDatabase(DATABASE_NAME).getCollection<Chat>("chats")
 
     val chat = Chat(chatname, adming, true, mutableListOf<String>())
     collection.insertOne(chat)
@@ -101,36 +98,37 @@ suspend fun createChat(chatname:String, adming:String):Boolean{
     return true
 }
 
-suspend fun enterChat(chatname: String, username: String):Boolean{
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
+suspend fun enterChat(chatname: String, username: String): Boolean {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Chat> = connection.getDatabase(DATABASE_NAME).getCollection<Chat>("chats")
 
     val filter = Filters.eq("chatname", chatname)
 
     var chat: Chat? = null
 
-    collection.find<Chat>(filter).collect{
+    collection.find<Chat>(filter).collect {
         chat = it
     }
 
     connection.close()
 
-    if(chat == null)
+    if (chat == null)
         return false
 
-    if(chat!!.open)
+    if (chat!!.open)
         return true
     if (chat!!.admin.equals(username))
         return true
-    if(chat!!.members.contains(username))
+    if (chat!!.members.contains(username))
         return true
 
     return false
 }
 
-suspend fun saveMessage(chatname: String, sender:String, msg:String){
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Message> = connection.getDatabase(database_name).getCollection<Message>("_"+chatname)
+suspend fun saveMessage(chatname: String, sender: String, msg: String) {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Message> =
+        connection.getDatabase(DATABASE_NAME).getCollection<Message>("_" + chatname)
 
     val message = Message(sender, msg)
     collection.insertOne(message)
@@ -138,13 +136,14 @@ suspend fun saveMessage(chatname: String, sender:String, msg:String){
     connection.close()
 }
 
-suspend fun loadMessages(chatname: String):List<messages.Message>{
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Message> = connection.getDatabase(database_name).getCollection<Message>("_"+chatname)
+suspend fun loadMessages(chatname: String): List<messages.Message> {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Message> =
+        connection.getDatabase(DATABASE_NAME).getCollection<Message>("_" + chatname)
 
     val result = mutableListOf<messages.Message>()
 
-    collection.find<Message>().collect{
+    collection.find<Message>().collect {
         result.add(messages.Message(action = MessageAction.TEXT, message = it.msg, username = it.sender))
     }
 
@@ -152,13 +151,13 @@ suspend fun loadMessages(chatname: String):List<messages.Message>{
     return result
 }
 
-suspend fun getChatAdmin(chatname: String):String{
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
+suspend fun getChatAdmin(chatname: String): String {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Chat> = connection.getDatabase(DATABASE_NAME).getCollection<Chat>("chats")
 
-    var result:String = ""
+    var result = ""
     val filter = Filters.eq("chatname", chatname)
-    collection.find<Chat>(filter).collect{
+    collection.find<Chat>(filter).collect {
         result = it.admin
     }
 
@@ -166,12 +165,12 @@ suspend fun getChatAdmin(chatname: String):String{
     return result
 }
 
-suspend fun setChatPrivacy(action: MessageAction, chatname: String){
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
+suspend fun setChatPrivacy(action: MessageAction, chatname: String) {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Chat> = connection.getDatabase(DATABASE_NAME).getCollection<Chat>("chats")
 
     val filter = Filters.eq("chatname", chatname)
-    val update = Updates.set("open", action==MessageAction.PUBLIC_CHAT)
+    val update = Updates.set("open", action == MessageAction.PUBLIC_CHAT)
 
     collection.updateOne(filter, update)
 
@@ -179,13 +178,13 @@ suspend fun setChatPrivacy(action: MessageAction, chatname: String){
     connection.close()
 }
 
-suspend fun addUserToChat(chatname: String, username: String){
-    val connection = MongoClient.create(url)
-    val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
+suspend fun addUserToChat(chatname: String, username: String) {
+    val connection = MongoClient.create(URL)
+    val collection: MongoCollection<Chat> = connection.getDatabase(DATABASE_NAME).getCollection<Chat>("chats")
 
     val filter = Filters.eq("chatname", chatname)
 
-    val chat:Chat = collection.find<Chat>(filter).first()
+    val chat: Chat = collection.find<Chat>(filter).first()
     chat.members.add(username)
 
     val update = Updates.set("members", chat.members)
@@ -195,7 +194,7 @@ suspend fun addUserToChat(chatname: String, username: String){
 }
 
 suspend fun createDatabase(dbName: String) {
-    val connection = MongoClient.create(url)
+    val connection = MongoClient.create(URL)
     val usersCollection: MongoCollection<User> = connection.getDatabase(dbName).getCollection<User>("users")
 
     val usernameIndexOptions = IndexOptions().unique(true)
@@ -209,7 +208,7 @@ suspend fun createDatabase(dbName: String) {
 }
 
 suspend fun deleteDatabase(dbName: String) {
-    val connection = MongoClient.create(url)
+    val connection = MongoClient.create(URL)
     val database: MongoDatabase = connection.getDatabase(dbName)
     database.drop()
 }
@@ -222,7 +221,7 @@ data class User(
 data class Chat(
     val chatname: String,
     val admin: String,
-    val open:Boolean,
+    val open: Boolean,
     val members: MutableList<String>
 )
 

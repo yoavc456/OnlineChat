@@ -13,7 +13,7 @@ class ChatClient {
     constructor() {
         try {
             createConnection()
-            if (clientDataManager.SOCKET == null)
+            if (clientDataManager.socket == null)
                 return
             startReceivingMessagesFromServer()
             connectedToServerLoop()
@@ -27,7 +27,7 @@ class ChatClient {
 
     private fun createConnection() {
         try {
-            clientDataManager.SOCKET = Socket(IP_ADDRESS, PORT)
+            clientDataManager.socket = Socket(IP_ADDRESS, PORT)
         } catch (e: Exception) {
             println("Didn't Connect To The Server!")
             clientDataManager.stage = Stage.CLOSE
@@ -41,7 +41,7 @@ class ChatClient {
     }
 
     private fun connectedToServerLoop() = runBlocking {
-        while (!clientDataManager.SOCKET!!.isClosed && clientDataManager.stage != Stage.CLOSE) {
+        while (!clientDataManager.socket!!.isClosed && clientDataManager.stage != Stage.CLOSE) {
             if (clientDataManager.stage == Stage.USER_ENTRY)
                 userEntryHandler()
             else if (clientDataManager.stage == Stage.CHAT_ENTRY)
@@ -83,11 +83,11 @@ class ChatClient {
             clientDataManager.sendMsg(
                 Message(
                     stage = Stage.CHAT_ENTRY, action = MessageAction.OUT_OF_USER,
-                    chatname = clientDataManager.chat_name, username = clientDataManager.user_name
+                    chatname = clientDataManager.chatName, username = clientDataManager.userName
                 )
             )
             clientDataManager.stage = Stage.USER_ENTRY
-            clientDataManager.user_name = ""
+            clientDataManager.userName = ""
 
         }
 

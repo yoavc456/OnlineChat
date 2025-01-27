@@ -6,41 +6,41 @@ import java.net.Socket
 
 class ClientDataManager private constructor() {
 
-    var user_name: String = ""
-    var chat_name: String = ""
+    var userName: String = ""
+    var chatName: String = ""
     var admin: Boolean = false
 
-    var SOCKET: Socket? = null
+    var socket: Socket? = null
     var stage = Stage.USER_ENTRY
 
 
-    companion object{
+    companion object {
         private val clientDataManager = ClientDataManager()
-        fun getInstance():ClientDataManager{
+        fun getInstance(): ClientDataManager {
             return clientDataManager
         }
     }
 
     fun sendMsg(msg: Any) {
-        if(SOCKET!!.isClosed)
+        if (socket!!.isClosed)
             return
-        val output = ObjectOutputStream(SOCKET!!.getOutputStream())
+        val output = ObjectOutputStream(socket!!.getOutputStream())
         output.writeObject(msg)
     }
 
     fun closeClient() {
-        if(SOCKET == null)
+        if (socket == null)
             return
 
-        sendMsg(Message(Stage.CLOSE, username = user_name, chatname = chat_name))
+        sendMsg(Message(Stage.CLOSE, username = userName, chatname = chatName))
         stage = Stage.CLOSE
-        SOCKET!!.close()
+        socket!!.close()
 
         println("CLOSE")
     }
 
     fun handleReceivedTextMessage(msg: Message) {
-        if (msg.receiverUsername.equals(user_name))
+        if (msg.receiverUsername.equals(userName))
             println("${msg.username} (Private Message): ${msg.message}")
         else
             println("${msg.username}: ${msg.message}")

@@ -31,7 +31,7 @@ suspend fun chatEntryHandler(socket: Socket, msg: Message) {
         serverDataManager.sendMessage(Message(success = result, message = entryAcceptMessage), socket)
     }
 
-    if(msg.action == MessageAction.OUT_OF_USER){
+    if (msg.action == MessageAction.OUT_OF_USER) {
         serverDataManager.LOGGED_IN_SOCKETS.remove(msg.username)
     }
 }

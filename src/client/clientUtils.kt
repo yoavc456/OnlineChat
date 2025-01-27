@@ -30,7 +30,7 @@ suspend fun clientLogIn(): Boolean {
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.user_name = userName
+        clientDataManager.userName = userName
         return true
     }
 
@@ -63,7 +63,7 @@ suspend fun clientRegister(): Boolean {
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.user_name = userName
+        clientDataManager.userName = userName
         return true
     }
 
@@ -77,7 +77,7 @@ suspend fun clientEnterToChat(): Boolean {
     clientDataManager.sendMsg(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
-            username = clientDataManager.user_name, chatname = chatName
+            username = clientDataManager.userName, chatname = chatName
         )
     )
 
@@ -85,13 +85,13 @@ suspend fun clientEnterToChat(): Boolean {
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.chat_name = chatName
+        clientDataManager.chatName = chatName
 
         println(msg.admin)
         for (m in msg.chatMessages!!) {
             clientDataManager.handleReceivedTextMessage(m)
         }
-        clientDataManager.admin = msg.admin.equals(clientDataManager.user_name)
+        clientDataManager.admin = msg.admin.equals(clientDataManager.userName)
         return true
     }
 
@@ -105,7 +105,7 @@ suspend fun clientCreateChat(): Boolean {
     clientDataManager.sendMsg(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
-            username = clientDataManager.user_name, chatname = chatName
+            username = clientDataManager.userName, chatname = chatName
         )
     )
 
@@ -113,7 +113,7 @@ suspend fun clientCreateChat(): Boolean {
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.chat_name = chatName
+        clientDataManager.chatName = chatName
         clientDataManager.admin = true
         return true
     }
@@ -122,9 +122,9 @@ suspend fun clientCreateChat(): Boolean {
 }
 
 fun receiveFromServerCoroutine() {
-    while (!clientDataManager.SOCKET!!.isClosed) {
+    while (!clientDataManager.socket!!.isClosed) {
         try {
-            val input = ObjectInputStream(clientDataManager.SOCKET!!.getInputStream())
+            val input = ObjectInputStream(clientDataManager.socket!!.getInputStream())
             val msg = input.readObject() as Message
 
             if (clientDataManager.stage == Stage.TEXT_MESSAGES)
@@ -133,7 +133,7 @@ fun receiveFromServerCoroutine() {
                 lastMessage = msg
 
         } catch (e: Exception) {
-            clientDataManager.SOCKET!!.close()
+            clientDataManager.socket!!.close()
             println("Disconnected From The Server!")
         }
     }
@@ -156,8 +156,8 @@ fun handleTextInput(msg: String) {
             stage = Stage.TEXT_MESSAGES,
             action = MessageAction.TEXT,
             message = msg,
-            username = clientDataManager.user_name,
-            chatname = clientDataManager.chat_name
+            username = clientDataManager.userName,
+            chatname = clientDataManager.chatName
         )
     )
 }
@@ -169,17 +169,17 @@ private fun openTextInputMenu(msg: String) {
         clientDataManager.sendMsg(
             Message(
                 stage = Stage.TEXT_MESSAGES, action = MessageAction.OUT_OF_CHAT,
-                chatname = clientDataManager.chat_name, username = clientDataManager.user_name
+                chatname = clientDataManager.chatName, username = clientDataManager.userName
             )
         )
         clientDataManager.stage = Stage.CHAT_ENTRY
-        clientDataManager.chat_name = ""
+        clientDataManager.chatName = ""
     } else if (msg.equals("pu") && clientDataManager.admin)
         clientDataManager.sendMsg(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PUBLIC_CHAT,
-                chatname = clientDataManager.chat_name
+                chatname = clientDataManager.chatName
             )
         )
     else if (msg.equals("pr") && clientDataManager.admin)
@@ -187,7 +187,7 @@ private fun openTextInputMenu(msg: String) {
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PRIVATE_CHAT,
-                chatname = clientDataManager.chat_name
+                chatname = clientDataManager.chatName
             )
         )
     else if (msg.equals("a") && clientDataManager.admin) {
@@ -198,7 +198,7 @@ private fun openTextInputMenu(msg: String) {
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.ADD_USER_TO_CHAT,
                 receiverUsername = username,
-                chatname = clientDataManager.chat_name
+                chatname = clientDataManager.chatName
             )
         )
     }
