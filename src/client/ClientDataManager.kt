@@ -10,7 +10,7 @@ class ClientDataManager private constructor() {
     var chat_name: String = ""
     var admin: Boolean = false
 
-    lateinit var SOCKET: Socket
+    var SOCKET: Socket? = null
     var stage = Stage.USER_ENTRY
 
 
@@ -22,16 +22,21 @@ class ClientDataManager private constructor() {
     }
 
     fun sendMsg(msg: Any) {
-        if(SOCKET.isClosed)
+        if(SOCKET!!.isClosed)
             return
-        val output = ObjectOutputStream(SOCKET.getOutputStream())
+        val output = ObjectOutputStream(SOCKET!!.getOutputStream())
         output.writeObject(msg)
     }
 
     fun closeClient() {
+        if(SOCKET == null)
+            return
+
         sendMsg(Message(Stage.CLOSE, username = user_name, chatname = chat_name))
         stage = Stage.CLOSE
-        SOCKET.close()
+        SOCKET!!.close()
+
+        println("CLOSE")
     }
 
     fun handleReceivedTextMessage(msg: Message) {

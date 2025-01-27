@@ -6,14 +6,14 @@ import com.mongodb.client.model.Indexes
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
+import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
 import messages.MessageAction
 
 private val url:String = "mongodb://localhost:27017"
 private val database_name = "onlineChatDB"
 
-//Receives a username and a password. Check if there is a user with those username and password in 'users' collection.
-suspend fun isUserExist(username:String, password:String):Boolean{
+suspend fun doesUserExist(username:String, password:String):Boolean{
     val connection = MongoClient.create(url)
     val collection: MongoCollection<User> = connection.getDatabase(database_name).getCollection<User>("users")
 
@@ -33,8 +33,7 @@ suspend fun isUserExist(username:String, password:String):Boolean{
     return user!!.password.equals(password)
 }
 
-//Receives a username. Check if there is a user with that username in 'users' collection.
-suspend fun isUsernameExist(username: String):Boolean{
+suspend fun doesUsernameExist(username: String):Boolean{
     val connection = MongoClient.create(url)
     val collection: MongoCollection<User> = connection.getDatabase(database_name).getCollection<User>("users")
 
@@ -54,9 +53,8 @@ suspend fun isUsernameExist(username: String):Boolean{
     return true
 }
 
-//Receives a username and a password. If the username is not taken, it adds user with those details to 'users' collection
 suspend fun createUser(username: String, password: String):Boolean{
-    if(isUsernameExist(username))
+    if(doesUsernameExist(username))
         return false
 
     val connection = MongoClient.create(url)
@@ -69,8 +67,7 @@ suspend fun createUser(username: String, password: String):Boolean{
     return true
 }
 
-//Receives a chatname. Check if there is a chat with that chatname in 'chats' collection.
-suspend fun isChatExist(chatname: String):Boolean{
+suspend fun doesChatExist(chatname: String):Boolean{
     val connection = MongoClient.create(url)
     val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
 
@@ -90,9 +87,8 @@ suspend fun isChatExist(chatname: String):Boolean{
     return true
 }
 
-//Receive details of a new chat. If the chatname is not taken, it adds new chat with those details to 'chats' collection
 suspend fun createChat(chatname:String, adming:String):Boolean{
-    if(isChatExist(chatname))
+    if(doesChatExist(chatname))
         return false
 
     val connection = MongoClient.create(url)
@@ -105,7 +101,6 @@ suspend fun createChat(chatname:String, adming:String):Boolean{
     return true
 }
 
-//Receive chatname and username. Tells if username can enter to chatname
 suspend fun enterChat(chatname: String, username: String):Boolean{
     val connection = MongoClient.create(url)
     val collection: MongoCollection<Chat> = connection.getDatabase(database_name).getCollection<Chat>("chats")
@@ -199,19 +194,24 @@ suspend fun addUserToChat(chatname: String, username: String){
     connection.close()
 }
 
-
-suspend fun createCollection(){
+suspend fun createDatabase(dbName: String) {
     val connection = MongoClient.create(url)
-    val collection: MongoCollection<User> = connection.getDatabase(database_name).getCollection<User>("chats")
+    val usersCollection: MongoCollection<User> = connection.getDatabase(dbName).getCollection<User>("users")
 
-    val indexOptions = IndexOptions().unique(true)
-    collection.createIndex(Indexes.ascending("chatname"), indexOptions)
+    val usernameIndexOptions = IndexOptions().unique(true)
+    usersCollection.createIndex(Indexes.ascending("username"), usernameIndexOptions)
+
+    val chatsCollection: MongoCollection<Chat> = connection.getDatabase(dbName).getCollection<Chat>("chats")
+    val chatnameIndexOptions = IndexOptions().unique(true)
+    chatsCollection.createIndex(Indexes.ascending("chatname"), chatnameIndexOptions)
 
     connection.close()
 }
 
-fun deleteCollection(){
-
+suspend fun deleteDatabase(dbName: String) {
+    val connection = MongoClient.create(url)
+    val database: MongoDatabase = connection.getDatabase(dbName)
+    database.drop()
 }
 
 data class User(

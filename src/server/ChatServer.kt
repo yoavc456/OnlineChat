@@ -2,11 +2,7 @@ package server
 
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import messages.*
 import server.socket_handler.SocketHandler
-import utils.*
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
 import java.net.ServerSocket
 import java.net.Socket
 
@@ -27,6 +23,7 @@ class ChatServer {
 
         readln()
 
+        serverDataManager.close()
         SERVER_SOCKET.close()
     }
 

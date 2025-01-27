@@ -9,7 +9,7 @@ import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
 
-suspend fun chatEntryHandler(socket: Socket, msg:Message){
+suspend fun chatEntryHandler(socket: Socket, msg: Message) {
     if (msg.action == MessageAction.ENTER_CHAT) {
         val result = enterChat(msg)
 
@@ -29,6 +29,10 @@ suspend fun chatEntryHandler(socket: Socket, msg:Message){
         val result = createChat(msg)
         val entryAcceptMessage: String = if (result) "Chat Created" else "Chat Does Not Created"
         serverDataManager.sendMessage(Message(success = result, message = entryAcceptMessage), socket)
+    }
+
+    if(msg.action == MessageAction.OUT_OF_USER){
+        serverDataManager.LOGGED_IN_SOCKETS.remove(msg.username)
     }
 }
 

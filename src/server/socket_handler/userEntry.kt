@@ -4,8 +4,8 @@ import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
 import utils.createUser
-import utils.isUserExist
-import utils.isUsernameExist
+import utils.doesUserExist
+import utils.doesUsernameExist
 import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
@@ -27,7 +27,7 @@ suspend fun userEntryHandler(socket: Socket, msg:Message) {
 
 private suspend fun logIn(socket:Socket, msg:Message): Boolean {
     val serverDataManager = ServerDataManager.getInstance()
-    if (isUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) == null) {
+    if (doesUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) == null) {
         serverDataManager.SOCKETS.remove(socket)
         serverDataManager.LOGGED_IN_SOCKETS.put(msg.username, socket)
         return true
@@ -37,7 +37,7 @@ private suspend fun logIn(socket:Socket, msg:Message): Boolean {
 
 private suspend fun register(socket: Socket, msg:Message): Boolean {
     val serverDataManager = ServerDataManager.getInstance()
-    if (!isUsernameExist(msg!!.username)) {
+    if (!doesUsernameExist(msg!!.username)) {
         if (serverDataManager.LOGGED_IN_SOCKETS.get(msg!!.username) != null)
             return false
         createUser(msg!!.username, msg!!.password)

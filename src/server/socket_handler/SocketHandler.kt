@@ -49,6 +49,8 @@ class SocketHandler(private val socket: Socket){
             serverDataManager.SOCKETS.remove(socket)
         }
         socket.close()
+
+        println("CLOSE")
     }
 
 }

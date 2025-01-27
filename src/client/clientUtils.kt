@@ -5,22 +5,28 @@ import messages.Message
 import messages.MessageAction
 import messages.Stage
 import java.io.ObjectInputStream
+import java.util.concurrent.TimeoutException
 
 val clientDataManager = ClientDataManager.getInstance()
+var lastMessage: Message = Message(read = true)
+val maxWaitingTimeForMessage: Long = 3000
 
-var lastMessage:Message = Message(read = true)
-
-suspend fun logIn(): Boolean {
+suspend fun clientLogIn(): Boolean {
     print("UserName: ")
     val userName: String = readln()
     print("Password: ")
     val password: String = readln()
 
-    clientDataManager.sendMsg(Message(stage = Stage.USER_ENTRY, action = MessageAction.LOG_IN, username = userName, password=password))
+    clientDataManager.sendMsg(
+        Message(
+            stage = Stage.USER_ENTRY,
+            action = MessageAction.LOG_IN,
+            username = userName,
+            password = password
+        )
+    )
 
-//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-//    val msg = input.readObject() as Message
-    val msg = getLastMessage(3000)
+    val msg = getLastMessage(maxWaitingTimeForMessage)
 
     println(msg.message)
     if (msg.success) {
@@ -31,7 +37,7 @@ suspend fun logIn(): Boolean {
     return false
 }
 
-suspend fun register(): Boolean {
+suspend fun clientRegister(): Boolean {
     print("UserName: ")
     val userName: String = readln()
     print("Password: ")
@@ -44,12 +50,16 @@ suspend fun register(): Boolean {
         return false
     }
 
-    clientDataManager.sendMsg(Message(stage=Stage.USER_ENTRY, action = MessageAction.REGISTER, username = userName, password = password))
+    clientDataManager.sendMsg(
+        Message(
+            stage = Stage.USER_ENTRY,
+            action = MessageAction.REGISTER,
+            username = userName,
+            password = password
+        )
+    )
 
-//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-//    val msg = input.readObject() as Message
-
-    val msg = getLastMessage(3000)
+    val msg = getLastMessage(maxWaitingTimeForMessage)
 
     println(msg.message)
     if (msg.success) {
@@ -60,16 +70,18 @@ suspend fun register(): Boolean {
     return false
 }
 
-suspend fun enterChat(): Boolean {
+suspend fun clientEnterToChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    clientDataManager.sendMsg(Message(stage=Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
-        username = clientDataManager.user_name, chatname = chatName))
+    clientDataManager.sendMsg(
+        Message(
+            stage = Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
+            username = clientDataManager.user_name, chatname = chatName
+        )
+    )
 
-//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-//    val msg = input.readObject() as Message
-    val msg = getLastMessage(3000)
+    val msg = getLastMessage(maxWaitingTimeForMessage)
 
     println(msg.message)
     if (msg.success) {
@@ -77,27 +89,27 @@ suspend fun enterChat(): Boolean {
 
         println(msg.admin)
         for (m in msg.chatMessages!!) {
-                clientDataManager.handleReceivedTextMessage(m)
+            clientDataManager.handleReceivedTextMessage(m)
         }
         clientDataManager.admin = msg.admin.equals(clientDataManager.user_name)
-        println(chatName)
         return true
     }
 
     return false
 }
 
-suspend fun createChat(): Boolean {
+suspend fun clientCreateChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    clientDataManager.sendMsg(Message(stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
-        username = clientDataManager.user_name, chatname = chatName))
+    clientDataManager.sendMsg(
+        Message(
+            stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
+            username = clientDataManager.user_name, chatname = chatName
+        )
+    )
 
-//    val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
-//    val msg = input.readObject() as Message
-
-    val msg = getLastMessage(3000)
+    val msg = getLastMessage(maxWaitingTimeForMessage)
 
     println(msg.message)
     if (msg.success) {
@@ -109,24 +121,19 @@ suspend fun createChat(): Boolean {
     return false
 }
 
-fun waitForTextInputCoroutine() {
-    val msg = readln()
-    handleTextInput(msg)
-}
-
 fun receiveFromServerCoroutine() {
-    while (!clientDataManager.SOCKET.isClosed) {
+    while (!clientDataManager.SOCKET!!.isClosed) {
         try {
-            val input = ObjectInputStream(clientDataManager.SOCKET.getInputStream())
+            val input = ObjectInputStream(clientDataManager.SOCKET!!.getInputStream())
             val msg = input.readObject() as Message
 
-            if(clientDataManager.stage == Stage.TEXT_MESSAGES)
+            if (clientDataManager.stage == Stage.TEXT_MESSAGES)
                 clientDataManager.handleReceivedTextMessage(msg)
             else
                 lastMessage = msg
 
         } catch (e: Exception) {
-            clientDataManager.SOCKET.close()
+            clientDataManager.SOCKET!!.close()
             println("Disconnected From The Server!")
         }
     }
@@ -135,42 +142,76 @@ fun receiveFromServerCoroutine() {
 fun handleTextInput(msg: String) {
     if (msg.equals("//")) {
         if (clientDataManager.admin)
-            println("c(Close)/pu(public)/pr(private)/a(add)")
+            println("c(Close)/o(out)/pu(public)/pr(private)/a(add)")
         else
-            println("c(Close)")
+            println("c(Close)/o(out)")
+
         val answer: String = readln()
-
-        if (answer.equals("c"))
-            clientDataManager.closeClient()
-        else if (answer.equals("aaa")){
-            clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.OUT_OF_CHAT,
-                chatname = clientDataManager.chat_name, username = clientDataManager.user_name))
-            clientDataManager.stage = Stage.CHAT_ENTRY
-        } else if (answer.equals("pu") && clientDataManager.admin)
-            clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.PUBLIC_CHAT, chatname = clientDataManager.chat_name))
-        else if (answer.equals("pr") && clientDataManager.admin)
-            clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.PRIVATE_CHAT, chatname = clientDataManager.chat_name))
-        else if (answer.equals("a") && clientDataManager.admin) {
-            print("User Name: ")
-            val username: String = readln()
-            clientDataManager.sendMsg(Message(stage = Stage.TEXT_MESSAGES, action = MessageAction.ADD_USER_TO_CHAT, receiverUsername = username, chatname = clientDataManager.chat_name))
-        }
-
+        openTextInputMenu(answer)
         return
     }
 
-    clientDataManager.sendMsg(Message(stage=Stage.TEXT_MESSAGES, action = MessageAction.TEXT, message = msg, username = clientDataManager.user_name, chatname = clientDataManager.chat_name))
+    clientDataManager.sendMsg(
+        Message(
+            stage = Stage.TEXT_MESSAGES,
+            action = MessageAction.TEXT,
+            message = msg,
+            username = clientDataManager.user_name,
+            chatname = clientDataManager.chat_name
+        )
+    )
 }
 
-private suspend fun getLastMessage(maxWaitingTimeMillis:Long):Message{
+private fun openTextInputMenu(msg: String) {
+    if (msg.equals("c"))
+        clientDataManager.stage = Stage.CLOSE
+    else if (msg.equals("o")) {
+        clientDataManager.sendMsg(
+            Message(
+                stage = Stage.TEXT_MESSAGES, action = MessageAction.OUT_OF_CHAT,
+                chatname = clientDataManager.chat_name, username = clientDataManager.user_name
+            )
+        )
+        clientDataManager.stage = Stage.CHAT_ENTRY
+        clientDataManager.chat_name = ""
+    } else if (msg.equals("pu") && clientDataManager.admin)
+        clientDataManager.sendMsg(
+            Message(
+                stage = Stage.TEXT_MESSAGES,
+                action = MessageAction.PUBLIC_CHAT,
+                chatname = clientDataManager.chat_name
+            )
+        )
+    else if (msg.equals("pr") && clientDataManager.admin)
+        clientDataManager.sendMsg(
+            Message(
+                stage = Stage.TEXT_MESSAGES,
+                action = MessageAction.PRIVATE_CHAT,
+                chatname = clientDataManager.chat_name
+            )
+        )
+    else if (msg.equals("a") && clientDataManager.admin) {
+        print("User Name: ")
+        val username: String = readln()
+        clientDataManager.sendMsg(
+            Message(
+                stage = Stage.TEXT_MESSAGES,
+                action = MessageAction.ADD_USER_TO_CHAT,
+                receiverUsername = username,
+                chatname = clientDataManager.chat_name
+            )
+        )
+    }
+}
+
+private suspend fun getLastMessage(maxWaitingTimeMillis: Long): Message {
     val time = System.currentTimeMillis()
-    while (System.currentTimeMillis()-time<maxWaitingTimeMillis){
-        if(!lastMessage.read){
+    while (System.currentTimeMillis() - time < maxWaitingTimeMillis) {
+        if (!lastMessage.read) {
             lastMessage.read = true
             return lastMessage
         }
         delay(100)
     }
-    //TODO: Right exception
-    throw IllegalArgumentException()
+    throw TimeoutException()
 }

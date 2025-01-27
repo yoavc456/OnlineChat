@@ -6,17 +6,21 @@ import java.net.Socket
 
 class ChatClient {
     val clientDataManager = ClientDataManager.getInstance()
+
     private val IP_ADDRESS: String = "localhost"
     private val PORT: Int = 1234
 
     constructor() {
         try {
             createConnection()
-            chatIsOpen()
+            if (clientDataManager.SOCKET == null)
+                return
+            startReceivingMessagesFromServer()
+            connectedToServerLoop()
         } catch (e: Exception) {
-//            clientDataManager.SOCKET.close()
             println("Disconnected From The Server!")
-        }finally {
+            clientDataManager.stage = Stage.CLOSE
+        } finally {
             clientDataManager.closeClient()
         }
     }
@@ -30,69 +34,69 @@ class ChatClient {
         }
     }
 
-    private fun chatIsOpen()= runBlocking{
+    private fun startReceivingMessagesFromServer() {
         GlobalScope.launch {
             receiveFromServerCoroutine()
         }
-        while (clientDataManager.stage != Stage.CLOSE){
-            if(clientDataManager.stage == Stage.USER_ENTRY)
+    }
+
+    private fun connectedToServerLoop() = runBlocking {
+        while (!clientDataManager.SOCKET!!.isClosed && clientDataManager.stage != Stage.CLOSE) {
+            if (clientDataManager.stage == Stage.USER_ENTRY)
                 userEntryHandler()
-            else if(clientDataManager.stage == Stage.CHAT_ENTRY)
+            else if (clientDataManager.stage == Stage.CHAT_ENTRY)
                 chatEntryHandler()
-            else if(clientDataManager.stage == Stage.TEXT_MESSAGES)
+            else if (clientDataManager.stage == Stage.TEXT_MESSAGES)
                 textMessagesHandler()
         }
     }
 
-    private suspend fun userEntryHandler(){
+    private suspend fun userEntryHandler() {
         println("l(LogIn)/r(Register)/c(Close)")
-        var answer = readln()
+        val answer = readln()
 
         var result = false
         if (answer.equals("l"))
-            result = logIn()
+            result = clientLogIn()
         else if (answer.equals("r"))
-            result = register()
+            result = clientRegister()
         else if (answer.equals("c")) {
             clientDataManager.stage = Stage.CLOSE
-            clientDataManager.closeClient()
         }
 
-        if(result)
+        if (result)
             clientDataManager.stage = Stage.CHAT_ENTRY
     }
 
-    private suspend fun chatEntryHandler(){
-        println("e(Enter A Chat)/cr(Create A Chat)/c(Close)")
+    private suspend fun chatEntryHandler() {
+        println("e(Enter A Chat)/cr(Create A Chat)/c(Close)/o(out)")
         var result = false
         val answer = readln()
         if (answer.equals("e"))
-            result = enterChat()
+            result = clientEnterToChat()
         else if (answer.equals("cr")) {
-            result = createChat()
+            result = clientCreateChat()
         } else if (answer.equals("c")) {
             result = false
             clientDataManager.stage = Stage.CLOSE
-            clientDataManager.closeClient()
+        } else if (answer.equals("o")) {
+            clientDataManager.sendMsg(
+                Message(
+                    stage = Stage.CHAT_ENTRY, action = MessageAction.OUT_OF_USER,
+                    chatname = clientDataManager.chat_name, username = clientDataManager.user_name
+                )
+            )
+            clientDataManager.stage = Stage.USER_ENTRY
+            clientDataManager.user_name = ""
+
         }
 
-        if(result)
+        if (result)
             clientDataManager.stage = Stage.TEXT_MESSAGES
     }
 
-    private fun textMessagesHandler(){
-//        val scope = CoroutineScope(Dispatchers.Default)
-//        scope.launch {
-//            waitForTextInputCoroutine()
-//        }
-//
-//        while (!clientDataManager.SOCKET.isClosed){
-//
-//        }
-//
-//        clientDataManager.closeClient()
-//        clientDataManager.stage = Stage.CLOSE
-
-        waitForTextInputCoroutine()
+    private fun textMessagesHandler() {
+        val msg = readln()
+        handleTextInput(msg)
     }
 }
