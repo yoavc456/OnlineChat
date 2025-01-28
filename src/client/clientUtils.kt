@@ -4,7 +4,6 @@ import kotlinx.coroutines.delay
 import messages.Message
 import messages.MessageAction
 import messages.Stage
-import java.io.ObjectInputStream
 import java.util.concurrent.TimeoutException
 
 val clientDataManager = ClientDataManager.getInstance()
@@ -17,7 +16,7 @@ suspend fun clientLogIn(): Boolean {
     print("Password: ")
     val password: String = readln()
 
-    clientDataManager.sendMsg(
+    clientDataManager.serverConnection!!.send(
         Message(
             stage = Stage.USER_ENTRY,
             action = MessageAction.LOG_IN,
@@ -50,7 +49,7 @@ suspend fun clientRegister(): Boolean {
         return false
     }
 
-    clientDataManager.sendMsg(
+    clientDataManager.serverConnection!!.send(
         Message(
             stage = Stage.USER_ENTRY,
             action = MessageAction.REGISTER,
@@ -74,7 +73,7 @@ suspend fun clientEnterToChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    clientDataManager.sendMsg(
+    clientDataManager.serverConnection!!.send(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
             username = clientDataManager.userName, chatname = chatName
@@ -102,7 +101,7 @@ suspend fun clientCreateChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    clientDataManager.sendMsg(
+    clientDataManager.serverConnection!!.send(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
             username = clientDataManager.userName, chatname = chatName
@@ -121,21 +120,13 @@ suspend fun clientCreateChat(): Boolean {
     return false
 }
 
-fun receiveFromServerCoroutine() {
-    while (!clientDataManager.socket!!.isClosed) {
-        try {
-            val input = ObjectInputStream(clientDataManager.socket!!.getInputStream())
-            val msg = input.readObject() as Message
-
-            if (clientDataManager.stage == Stage.TEXT_MESSAGES)
-                clientDataManager.handleReceivedTextMessage(msg)
-            else
-                lastMessage = msg
-
-        } catch (e: Exception) {
-            clientDataManager.socket!!.close()
-            println("Disconnected From The Server!")
-        }
+suspend fun receiveFromServerCoroutine() {
+    clientDataManager.serverConnection!!.receive().collect{
+        msg ->
+        if (clientDataManager.stage == Stage.TEXT_MESSAGES)
+            clientDataManager.handleReceivedTextMessage(msg)
+        else
+            lastMessage = msg
     }
 }
 
@@ -151,7 +142,7 @@ fun handleTextInput(msg: String) {
         return
     }
 
-    clientDataManager.sendMsg(
+    clientDataManager.serverConnection!!.send(
         Message(
             stage = Stage.TEXT_MESSAGES,
             action = MessageAction.TEXT,
@@ -166,7 +157,7 @@ private fun openTextInputMenu(msg: String) {
     if (msg.equals("c"))
         clientDataManager.stage = Stage.CLOSE
     else if (msg.equals("o")) {
-        clientDataManager.sendMsg(
+        clientDataManager.serverConnection!!.send(
             Message(
                 stage = Stage.TEXT_MESSAGES, action = MessageAction.OUT_OF_CHAT,
                 chatname = clientDataManager.chatName, username = clientDataManager.userName
@@ -175,7 +166,7 @@ private fun openTextInputMenu(msg: String) {
         clientDataManager.stage = Stage.CHAT_ENTRY
         clientDataManager.chatName = ""
     } else if (msg.equals("pu") && clientDataManager.admin)
-        clientDataManager.sendMsg(
+        clientDataManager.serverConnection!!.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PUBLIC_CHAT,
@@ -183,7 +174,7 @@ private fun openTextInputMenu(msg: String) {
             )
         )
     else if (msg.equals("pr") && clientDataManager.admin)
-        clientDataManager.sendMsg(
+        clientDataManager.serverConnection!!.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PRIVATE_CHAT,
@@ -193,7 +184,7 @@ private fun openTextInputMenu(msg: String) {
     else if (msg.equals("a") && clientDataManager.admin) {
         print("User Name: ")
         val username: String = readln()
-        clientDataManager.sendMsg(
+        clientDataManager.serverConnection!!.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.ADD_USER_TO_CHAT,

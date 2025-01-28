@@ -1,5 +1,7 @@
 package client
 
+import connection.ServerConnection
+import connection.socket_tcp.ServerConnectionTcp
 import messages.*
 import java.io.ObjectOutputStream
 import java.net.Socket
@@ -9,9 +11,9 @@ class ClientDataManager private constructor() {
     var userName: String = ""
     var chatName: String = ""
     var admin: Boolean = false
-
-    var socket: Socket? = null
     var stage = Stage.USER_ENTRY
+
+    var serverConnection:ServerConnection? = null
 
 
     companion object {
@@ -21,20 +23,27 @@ class ClientDataManager private constructor() {
         }
     }
 
-    fun sendMsg(msg: Any) {
-        if (socket!!.isClosed)
-            return
-        val output = ObjectOutputStream(socket!!.getOutputStream())
-        output.writeObject(msg)
-    }
+//    fun sendMsg(msg: Any) {
+//        if (socket!!.isClosed)
+//            return
+//        val output = ObjectOutputStream(socket!!.getOutputStream())
+//        output.writeObject(msg)
+//    }
 
     fun closeClient() {
-        if (socket == null)
+//        if (socket == null)
+//            return
+//
+//        sendMsg(Message(Stage.CLOSE, username = userName, chatname = chatName))
+//        stage = Stage.CLOSE
+//        socket!!.close()
+
+        if(serverConnection == null)
             return
 
-        sendMsg(Message(Stage.CLOSE, username = userName, chatname = chatName))
+        serverConnection!!.send(Message(Stage.CLOSE, username = userName, chatname = chatName))
         stage = Stage.CLOSE
-        socket!!.close()
+        serverConnection!!.close()
 
         println("CLOSE")
     }

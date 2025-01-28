@@ -1,6 +1,6 @@
 package server.socket_handler
 
-import database.MongoDBManager
+import server.database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
@@ -22,12 +22,10 @@ suspend fun textMessagesHandler(msg: Message) {
 }
 
 private suspend fun sendTextMessage(msg: Message) {
-    val serverDataManager = ServerDataManager.getInstance()
-
     mongoDBManager.saveMessage(msg.chatname, msg.username, msg.message)
     for (userName in serverDataManager.CHATS.get(msg.chatname)!!) {
         if (!userName.equals(msg.username)) {
-            serverDataManager.LOGGED_IN_SOCKETS.get(userName)?.let { serverDataManager.sendMessage(msg, it) }
+            serverDataManager.LOGGED_IN_CLIENTS.get(userName)?.send(msg)
         }
     }
 }

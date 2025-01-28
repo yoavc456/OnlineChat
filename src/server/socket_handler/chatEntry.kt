@@ -1,38 +1,35 @@
 package server.socket_handler
 
-import database.MongoDBManager
+import connection.ClientConnection
+import server.database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
-import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
 private val mongoDBManager = MongoDBManager.getInstance()
 
-suspend fun chatEntryHandler(socket: Socket, msg: Message) {
+suspend fun chatEntryHandler(clientConnection: ClientConnection, msg: Message) {
     if (msg.action == MessageAction.ENTER_CHAT) {
         val result = enterChat(msg)
 
         val entryAcceptMessage: String = if (result) "Entered Chat" else "Chat Does Not Exist"
         if (result)
-            serverDataManager.sendMessage(
-                Message(
-                    success = true, message = entryAcceptMessage,
-                    chatMessages = mongoDBManager.loadMessages(msg.chatname), admin = mongoDBManager.getChatAdmin(msg.chatname)
-                ), socket
-            )
+            clientConnection.send(Message(success = true, message = entryAcceptMessage,
+                chatMessages = mongoDBManager.loadMessages(msg.chatname), admin = mongoDBManager.getChatAdmin(msg.chatname)
+            ))
         else
-            serverDataManager.sendMessage(Message(success = false, message = entryAcceptMessage), socket)
+            clientConnection.send(Message(success = false, message = entryAcceptMessage))
     }
 
     if (msg.action == MessageAction.CREATE_CHAT) {
         val result = createChat(msg)
         val entryAcceptMessage: String = if (result) "Chat Created" else "Chat Does Not Created"
-        serverDataManager.sendMessage(Message(success = result, message = entryAcceptMessage), socket)
+        clientConnection.send(Message(success = result, message = entryAcceptMessage))
     }
 
     if (msg.action == MessageAction.OUT_OF_USER) {
-        serverDataManager.LOGGED_IN_SOCKETS.remove(msg.username)
+        serverDataManager.LOGGED_IN_CLIENTS.remove(msg.username)
     }
 }
 

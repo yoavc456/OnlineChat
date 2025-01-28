@@ -1,4 +1,4 @@
-package database
+package server.database
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.IndexOptions

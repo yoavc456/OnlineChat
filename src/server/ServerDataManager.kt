@@ -1,14 +1,13 @@
 package server
 
-import database.MongoDBManager
-import java.io.ObjectOutputStream
-import java.net.Socket
+import connection.ClientConnection
+import server.database.MongoDBManager
 
 class ServerDataManager private constructor() {
 
 
-    val SOCKETS: MutableList<Socket> = mutableListOf()
-    val LOGGED_IN_SOCKETS: HashMap<String, Socket> = hashMapOf()
+    val CLIENT_CONNECTIONS: MutableList<ClientConnection> = mutableListOf()
+    val LOGGED_IN_CLIENTS: HashMap<String, ClientConnection> = hashMapOf()
     val CHATS: HashMap<String, MutableList<String>> = HashMap()
 
     companion object {
@@ -19,17 +18,12 @@ class ServerDataManager private constructor() {
         }
     }
 
-    fun sendMessage(msg: Any, socket: Socket) {
-        val output = ObjectOutputStream(socket.getOutputStream())
-        output.writeObject(msg)
-    }
-
     fun close() {
-        for (s in SOCKETS) {
-            s.close()
+        for (c in CLIENT_CONNECTIONS) {
+            c.close()
         }
 
-        for (s in LOGGED_IN_SOCKETS) {
+        for (s in LOGGED_IN_CLIENTS) {
             s.value.close()
         }
 

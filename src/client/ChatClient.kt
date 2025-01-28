@@ -1,20 +1,18 @@
 package client
 
+import connection.socket_tcp.ServerConnectionTcp
 import kotlinx.coroutines.*
 import messages.*
-import java.net.Socket
 
 class ChatClient {
-    val clientDataManager = ClientDataManager.getInstance()
 
-    private val IP_ADDRESS: String = "localhost"
-    private val PORT: Int = 1234
+    val clientDataManager = ClientDataManager.getInstance()
+    val IP = "localhost"
+    val PORT = 1234
 
     constructor() {
         try {
             createConnection()
-            if (clientDataManager.socket == null)
-                return
             startReceivingMessagesFromServer()
             connectedToServerLoop()
         } catch (e: Exception) {
@@ -25,13 +23,8 @@ class ChatClient {
         }
     }
 
-    private fun createConnection() {
-        try {
-            clientDataManager.socket = Socket(IP_ADDRESS, PORT)
-        } catch (e: Exception) {
-            println("Didn't Connect To The Server!")
-            clientDataManager.stage = Stage.CLOSE
-        }
+    private fun createConnection(){
+        clientDataManager.serverConnection = ServerConnectionTcp(IP, PORT)
     }
 
     private fun startReceivingMessagesFromServer() {
@@ -41,7 +34,7 @@ class ChatClient {
     }
 
     private fun connectedToServerLoop() = runBlocking {
-        while (!clientDataManager.socket!!.isClosed && clientDataManager.stage != Stage.CLOSE) {
+        while (clientDataManager.serverConnection!!.isOpen() && clientDataManager.stage != Stage.CLOSE) {
             if (clientDataManager.stage == Stage.USER_ENTRY)
                 userEntryHandler()
             else if (clientDataManager.stage == Stage.CHAT_ENTRY)
@@ -80,7 +73,7 @@ class ChatClient {
             result = false
             clientDataManager.stage = Stage.CLOSE
         } else if (answer.equals("o")) {
-            clientDataManager.sendMsg(
+            clientDataManager.serverConnection!!.send(
                 Message(
                     stage = Stage.CHAT_ENTRY, action = MessageAction.OUT_OF_USER,
                     chatname = clientDataManager.chatName, username = clientDataManager.userName

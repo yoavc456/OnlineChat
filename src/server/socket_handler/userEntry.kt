@@ -1,45 +1,45 @@
 package server.socket_handler
 
-import database.MongoDBManager
+import connection.ClientConnection
+import server.database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
-import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
 private val mongoDBManager = MongoDBManager.getInstance()
 
-suspend fun userEntryHandler(socket: Socket, msg: Message) {
+suspend fun userEntryHandler(clientConnection: ClientConnection, msg: Message) {
     if (msg.action == MessageAction.LOG_IN) {
-        val result = logIn(socket, msg)
+        val result = logIn(clientConnection, msg)
         val entryAcceptMessage: String = if (result) "Logged In" else "Log In Failed"
-        serverDataManager.sendMessage(Message(success = result, message = entryAcceptMessage), socket)
+        clientConnection.send(Message(success = result, message = entryAcceptMessage))
     }
 
     if (msg.action == MessageAction.REGISTER) {
-        val result = register(socket, msg)
+        val result = register(clientConnection, msg)
         val entryAcceptMessage: String = if (result) "Register" else "Register Failed"
-        serverDataManager.sendMessage(Message(success = result, message = entryAcceptMessage), socket)
+        clientConnection.send(Message(success = result, message = entryAcceptMessage))
     }
 
 }
 
-private suspend fun logIn(socket: Socket, msg: Message): Boolean {
-    if (mongoDBManager.doesUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) == null) {
-        serverDataManager.SOCKETS.remove(socket)
-        serverDataManager.LOGGED_IN_SOCKETS.put(msg.username, socket)
+private suspend fun logIn(clientConnection: ClientConnection, msg: Message): Boolean {
+    if (mongoDBManager.doesUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_CLIENTS.get(msg.username) == null) {
+        serverDataManager.CLIENT_CONNECTIONS.remove(clientConnection)
+        serverDataManager.LOGGED_IN_CLIENTS.put(msg.username, clientConnection)
         return true
     }
     return false
 }
 
-private suspend fun register(socket: Socket, msg: Message): Boolean {
+private suspend fun register(clientConnection: ClientConnection, msg: Message): Boolean {
     if (!mongoDBManager.doesUsernameExist(msg.username)) {
-        if (serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) != null)
+        if (serverDataManager.LOGGED_IN_CLIENTS.get(msg.username) != null)
             return false
         mongoDBManager.createUser(msg.username, msg.password)
-        serverDataManager.SOCKETS.remove(socket)
-        serverDataManager.LOGGED_IN_SOCKETS.put(msg.username, socket)
+        serverDataManager.CLIENT_CONNECTIONS.remove(clientConnection)
+        serverDataManager.LOGGED_IN_CLIENTS.put(msg.username, clientConnection)
         return true
     }
 
