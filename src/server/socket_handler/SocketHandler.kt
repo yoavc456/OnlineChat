@@ -19,7 +19,7 @@ class SocketHandler(private val socket: Socket){
                 handleMessage()
             }
         }catch (e:Exception){
-
+//            throw e
         }
         finally {
             closeClient()

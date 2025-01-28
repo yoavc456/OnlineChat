@@ -1,5 +1,6 @@
 package server
 
+import database.MongoDBManager
 import java.io.ObjectOutputStream
 import java.net.Socket
 
@@ -31,5 +32,7 @@ class ServerDataManager private constructor() {
         for (s in LOGGED_IN_SOCKETS) {
             s.value.close()
         }
+
+        MongoDBManager.getInstance().close()
     }
 }

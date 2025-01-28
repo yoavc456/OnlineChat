@@ -1,5 +1,6 @@
 package utils
 
+/*
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.IndexOptions
 import com.mongodb.client.model.Indexes
@@ -9,6 +10,7 @@ import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
 import messages.MessageAction
+
 
 private const val URL: String = "mongodb://localhost:27017"
 private const val DATABASE_NAME = "onlineChatDB"
@@ -211,21 +213,25 @@ suspend fun deleteDatabase(dbName: String) {
     val connection = MongoClient.create(URL)
     val database: MongoDatabase = connection.getDatabase(dbName)
     database.drop()
+
+    connection.close()
 }
 
-data class User(
+private data class User(
     val username: String,
     val password: String
 )
 
-data class Chat(
+private data class Chat(
     val chatname: String,
     val admin: String,
     val open: Boolean,
     val members: MutableList<String>
 )
 
-data class Message(
+private data class Message(
     val sender: String,
     val msg: String
 )
+
+ */

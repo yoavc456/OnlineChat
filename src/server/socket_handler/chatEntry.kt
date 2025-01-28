@@ -1,13 +1,13 @@
 package server.socket_handler
 
+import database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
-import utils.getChatAdmin
-import utils.loadMessages
 import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
+private val mongoDBManager = MongoDBManager.getInstance()
 
 suspend fun chatEntryHandler(socket: Socket, msg: Message) {
     if (msg.action == MessageAction.ENTER_CHAT) {
@@ -18,7 +18,7 @@ suspend fun chatEntryHandler(socket: Socket, msg: Message) {
             serverDataManager.sendMessage(
                 Message(
                     success = true, message = entryAcceptMessage,
-                    chatMessages = loadMessages(msg.chatname), admin = getChatAdmin(msg.chatname)
+                    chatMessages = mongoDBManager.loadMessages(msg.chatname), admin = mongoDBManager.getChatAdmin(msg.chatname)
                 ), socket
             )
         else
@@ -37,7 +37,7 @@ suspend fun chatEntryHandler(socket: Socket, msg: Message) {
 }
 
 private suspend fun enterChat(msg: Message): Boolean {
-    if (utils.enterChat(msg.chatname, msg.username)) {
+    if (mongoDBManager.enterChat(msg.chatname, msg.username)) {
         if (serverDataManager.CHATS.get(msg.chatname) == null) {
             val chatUsers = mutableListOf<String>()
             chatUsers.add(msg.username)
@@ -52,7 +52,7 @@ private suspend fun enterChat(msg: Message): Boolean {
 }
 
 private suspend fun createChat(msg: Message): Boolean {
-    if (utils.createChat(msg.chatname, msg.username)) {
+    if (mongoDBManager.createChat(msg.chatname, msg.username)) {
         val chatUsers = mutableListOf<String>()
         chatUsers.add(msg.username)
         serverDataManager.CHATS.put(msg.chatname, chatUsers)

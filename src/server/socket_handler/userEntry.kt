@@ -1,14 +1,13 @@
 package server.socket_handler
 
+import database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
-import utils.createUser
-import utils.doesUserExist
-import utils.doesUsernameExist
 import java.net.Socket
 
 private val serverDataManager = ServerDataManager.getInstance()
+private val mongoDBManager = MongoDBManager.getInstance()
 
 suspend fun userEntryHandler(socket: Socket, msg: Message) {
     if (msg.action == MessageAction.LOG_IN) {
@@ -26,8 +25,7 @@ suspend fun userEntryHandler(socket: Socket, msg: Message) {
 }
 
 private suspend fun logIn(socket: Socket, msg: Message): Boolean {
-    val serverDataManager = ServerDataManager.getInstance()
-    if (doesUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) == null) {
+    if (mongoDBManager.doesUserExist(msg.username, msg.password) && serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) == null) {
         serverDataManager.SOCKETS.remove(socket)
         serverDataManager.LOGGED_IN_SOCKETS.put(msg.username, socket)
         return true
@@ -36,13 +34,12 @@ private suspend fun logIn(socket: Socket, msg: Message): Boolean {
 }
 
 private suspend fun register(socket: Socket, msg: Message): Boolean {
-    val serverDataManager = ServerDataManager.getInstance()
-    if (!doesUsernameExist(msg!!.username)) {
-        if (serverDataManager.LOGGED_IN_SOCKETS.get(msg!!.username) != null)
+    if (!mongoDBManager.doesUsernameExist(msg.username)) {
+        if (serverDataManager.LOGGED_IN_SOCKETS.get(msg.username) != null)
             return false
-        createUser(msg!!.username, msg!!.password)
+        mongoDBManager.createUser(msg.username, msg.password)
         serverDataManager.SOCKETS.remove(socket)
-        serverDataManager.LOGGED_IN_SOCKETS.put(msg!!.username, socket)
+        serverDataManager.LOGGED_IN_SOCKETS.put(msg.username, socket)
         return true
     }
 
