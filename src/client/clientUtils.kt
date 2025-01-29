@@ -6,7 +6,7 @@ import messages.MessageAction
 import messages.Stage
 import java.util.concurrent.TimeoutException
 
-val clientDataManager = ClientDataManager.getInstance()
+val clientDataManager = ClientDataManager
 var lastMessage: Message = Message(read = true)
 val maxWaitingTimeForMessage: Long = 3000
 

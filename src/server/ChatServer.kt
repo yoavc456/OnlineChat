@@ -1,13 +1,11 @@
 package server
 
-import connection.ClientConnection
 import connection.ServerManager
 import connection.socket_tcp.ServerManagerTcp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import server.socket_handler.SocketHandler
+import server.socket_handler.ClientHandler
 
 /**
  * Open the server.
@@ -20,7 +18,7 @@ class ChatServer {
     private val PORT: Int = 1234
 
     private val serverManager:ServerManager = ServerManagerTcp(PORT)
-    private val serverDataManager: ServerDataManager = ServerDataManager.getInstance()
+    private val serverDataManager: ServerDataManager = ServerDataManager
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
@@ -40,7 +38,7 @@ class ChatServer {
             clientConnection ->
 
             coroutineScope.launch {
-                SocketHandler(clientConnection).start()
+                ClientHandler(clientConnection).start()
             }
         }
     }

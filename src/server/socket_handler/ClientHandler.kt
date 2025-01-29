@@ -1,13 +1,13 @@
 package server.socket_handler
 
-import connection.ClientConnection
+import connection.Connection
 import kotlinx.coroutines.runBlocking
 import messages.*
 import messages.Message
 import server.ServerDataManager
 
-class SocketHandler(private val clientConnection: ClientConnection){
-    private val serverDataManager = ServerDataManager.getInstance()
+class ClientHandler(private val clientConnection: Connection){
+    private val serverDataManager = ServerDataManager
     private var msg: Message? = null
     private var run = true
 

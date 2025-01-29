@@ -8,130 +8,86 @@ import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoCollection
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import messages.Message
 import messages.MessageAction
 
-class MongoDBManager : DatabaseManager {
+object MongoDBManager : DatabaseManager {
 
-    companion object {
-        private var mongoDBManager: MongoDBManager? = null
-        private const val URL: String = "mongodb://localhost:27017"
-        private const val DATABASE_NAME = "chatDB2"
-        //onlineChatDB
+    private const val URL: String = "mongodb://localhost:27017"
+    private const val DATABASE_NAME = "chatDB2"
+    //onlineChatDB
 
-        fun getInstance(): MongoDBManager {
-            if (mongoDBManager == null)
-                mongoDBManager = MongoDBManager(URL, DATABASE_NAME)
+    private val connection: MongoClient = MongoClient.create(URL)
+    private val database: MongoDatabase = connection.getDatabase(DATABASE_NAME)
 
-            return mongoDBManager!!
-        }
-    }
-
-    private val connection: MongoClient
-    private val database: MongoDatabase
-
-    private constructor(url: String, dbName: String) {
-        connection = MongoClient.create(url)
-        database = connection.getDatabase(dbName)
-    }
+    private val usersCollection = database.getCollection<User>("users")
+    private val chatsCollection = database.getCollection<Chat>("chats")
 
     override suspend fun doesUserExist(username: String, password: String): Boolean {
-        val collection = database.getCollection<User>("users")
-        var user: User? = null
-
-        val filter = Filters.eq("username", username)
-        collection.find<User>(filter).collect {
-            user = it
-        }
-
-
-        if (user == null)
-            return false
-
-        return user!!.password.equals(password)
+        val filter = Filters.eq(User::username.name, username)
+        val user = usersCollection.find<User>(filter).firstOrNull() ?: return false
+        return user.password == password
     }
 
     override suspend fun doesUsernameExist(username: String): Boolean {
-        val collection = database.getCollection<User>("users")
-
-        var user: User? = null
-
-        val filter = Filters.eq("username", username)
-        collection.find<User>(filter).collect {
-            user = it
-        }
-
-        return user != null
+        val filter = Filters.eq(User::username.name, username)
+        return usersCollection.find<User>(filter).firstOrNull()==null
     }
 
     override suspend fun createUser(username: String, password: String): Boolean {
         if (doesUsernameExist(username))
             return false
 
-        val collection = database.getCollection<User>("users")
         val user = User(username, password)
-        collection.insertOne(user)
+        usersCollection.insertOne(user)
 
+        println("Created New User. username: $username passeord: $password ")
         return true
 
     }
 
     override suspend fun doesChatExist(chatname: String): Boolean {
-        val collection = database.getCollection<Chat>("chats")
-
-        var chat:Chat? = null
-
-        val filter = Filters.eq("chatname", chatname)
-        collection.find<Chat>(filter).collect {
-            chat = it
-        }
-
-        return chat != null
+        val filter = Filters.eq(Chat::chatname.name, chatname)
+        return chatsCollection.find<Chat>(filter).firstOrNull() != null
     }
 
     override suspend fun createChat(chatname: String, adming: String): Boolean {
         if (doesChatExist(chatname))
             return false
 
-        val collection = database.getCollection<Chat>("chats")
-
         val chat = Chat(chatname, adming, true, mutableListOf<String>())
-        collection.insertOne(chat)
+        chatsCollection.insertOne(chat)
 
+        println("Created New Chat. chatname: $chatname")
         return true
     }
 
     override suspend fun enterChat(chatname: String, username: String): Boolean {
-        val collection = database.getCollection<Chat>("chats")
+        val filter = Filters.eq(Chat::chatname.name, chatname)
+        val chat = chatsCollection.find<Chat>(filter).firstOrNull() ?: return false
 
-        var chat: Chat? = null
-
-        val filter = Filters.eq("chatname", chatname)
-        collection.find<Chat>(filter).collect {
-            chat = it
-        }
-
-        if (chat == null)
-            return false
-        if (chat!!.open)
+        if (chat.open)
             return true
-        if (chat!!.admin.equals(username))
+        if (chat.admin.equals(username))
             return true
-        if (chat!!.members.contains(username))
+        if (chat.members.contains(username))
             return true
 
         return false
     }
 
     override suspend fun saveMessage(chatname: String, sender: String, msg: String) {
-        val collection = database.getCollection<MongodbChatMessage>("_" + chatname)
+        val collectionName = getChatMessagesCollectionName(chatname)
+        val collection = database.getCollection<MongodbChatMessage>(collectionName)
 
         val message = MongodbChatMessage(sender, msg)
         collection.insertOne(message)
     }
 
     override suspend fun loadMessages(chatname: String): List<Message> {
-        val collection = database.getCollection<MongodbChatMessage>("_" + chatname)
+        val collectionName = getChatMessagesCollectionName(chatname)
+        val collection = database.getCollection<MongodbChatMessage>(collectionName)
         val result = mutableListOf<Message>()
 
         collection.find<MongodbChatMessage>().collect {
@@ -141,12 +97,10 @@ class MongoDBManager : DatabaseManager {
     }
 
     override suspend fun getChatAdmin(chatname: String): String {
-        val collection = database.getCollection<Chat>("chats")
-
         var result = ""
 
-        val filter = Filters.eq("chatname", chatname)
-        collection.find<Chat>(filter).collect {
+        val filter = Filters.eq(Chat::chatname.name, chatname)
+        chatsCollection.find<Chat>(filter).collect {
             result = it.admin
         }
 
@@ -154,23 +108,23 @@ class MongoDBManager : DatabaseManager {
     }
 
     override suspend fun setChatPrivacy(action: MessageAction, chatname: String) {
-        val collection = database.getCollection<Chat>("chats")
+        val filter = Filters.eq(Chat::chatname.name, chatname)
+        val update = Updates.set(Chat::open.name, action == MessageAction.PUBLIC_CHAT)
+        chatsCollection.updateOne(filter, update)
 
-        val filter = Filters.eq("chatname", chatname)
-        val update = Updates.set("open", action == MessageAction.PUBLIC_CHAT)
-        collection.updateOne(filter, update)
+        println("Set Chat Privacy. chatname: $chatname privacy: $action ")
     }
 
     override suspend fun addUserToChat(chatname: String, username: String) {
-        val collection = database.getCollection<Chat>("chats")
+        val filter = Filters.eq(Chat::chatname.name, chatname)
 
-        val filter = Filters.eq("chatname", chatname)
-
-        val chat: Chat = collection.find<Chat>(filter).first()
+        val chat: Chat = chatsCollection.find<Chat>(filter).first()
         chat.members.add(username)
 
-        val update = Updates.set("members", chat.members)
-        collection.updateOne(filter, update)
+        val update = Updates.set(Chat::members.name, chat.members)
+        chatsCollection.updateOne(filter, update)
+
+        println("Added User To Chat. username: $username chatname: $chatname ")
     }
 
     override suspend fun createDatabase(dbName: String) {
@@ -191,6 +145,11 @@ class MongoDBManager : DatabaseManager {
     override fun close() {
         connection.close()
         println("Close Mongo")
+    }
+
+    private fun getChatMessagesCollectionName(chatname: String):String{
+        val prefix = "_"
+        return prefix + chatname
     }
 }
 

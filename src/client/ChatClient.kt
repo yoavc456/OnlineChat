@@ -1,12 +1,12 @@
 package client
 
-import connection.socket_tcp.ServerConnectionTcp
+import connection.socket_tcp.ConnectionTcp
 import kotlinx.coroutines.*
 import messages.*
 
 class ChatClient {
 
-    val clientDataManager = ClientDataManager.getInstance()
+    val clientDataManager = ClientDataManager
     val IP = "localhost"
     val PORT = 1234
 
@@ -24,7 +24,7 @@ class ChatClient {
     }
 
     private fun createConnection(){
-        clientDataManager.serverConnection = ServerConnectionTcp(IP, PORT)
+        clientDataManager.serverConnection = ConnectionTcp(IP, PORT)
     }
 
     private fun startReceivingMessagesFromServer() {

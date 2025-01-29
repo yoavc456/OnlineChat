@@ -5,8 +5,8 @@ import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
 
-private val serverDataManager = ServerDataManager.getInstance()
-private val mongoDBManager = MongoDBManager.getInstance()
+private val serverDataManager = ServerDataManager
+private val mongoDBManager = MongoDBManager
 
 suspend fun textMessagesHandler(msg: Message) {
     if (msg.action == MessageAction.TEXT) {

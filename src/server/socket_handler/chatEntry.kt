@@ -1,15 +1,16 @@
 package server.socket_handler
 
-import connection.ClientConnection
+import connection.Connection
 import server.database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
+import server.database.DatabaseManager
 
-private val serverDataManager = ServerDataManager.getInstance()
-private val mongoDBManager = MongoDBManager.getInstance()
+private val serverDataManager = ServerDataManager
+private val mongoDBManager:DatabaseManager = MongoDBManager
 
-suspend fun chatEntryHandler(clientConnection: ClientConnection, msg: Message) {
+suspend fun chatEntryHandler(clientConnection: Connection, msg: Message) {
     if (msg.action == MessageAction.ENTER_CHAT) {
         val result = enterChat(msg)
 

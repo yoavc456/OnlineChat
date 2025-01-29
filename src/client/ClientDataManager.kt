@@ -1,43 +1,18 @@
 package client
 
-import connection.ServerConnection
-import connection.socket_tcp.ServerConnectionTcp
+import connection.Connection
 import messages.*
-import java.io.ObjectOutputStream
-import java.net.Socket
 
-class ClientDataManager private constructor() {
+object ClientDataManager{
 
     var userName: String = ""
     var chatName: String = ""
     var admin: Boolean = false
     var stage = Stage.USER_ENTRY
 
-    var serverConnection:ServerConnection? = null
-
-
-    companion object {
-        private val clientDataManager = ClientDataManager()
-        fun getInstance(): ClientDataManager {
-            return clientDataManager
-        }
-    }
-
-//    fun sendMsg(msg: Any) {
-//        if (socket!!.isClosed)
-//            return
-//        val output = ObjectOutputStream(socket!!.getOutputStream())
-//        output.writeObject(msg)
-//    }
+    var serverConnection:Connection? = null
 
     fun closeClient() {
-//        if (socket == null)
-//            return
-//
-//        sendMsg(Message(Stage.CLOSE, username = userName, chatname = chatName))
-//        stage = Stage.CLOSE
-//        socket!!.close()
-
         if(serverConnection == null)
             return
 
