@@ -14,6 +14,7 @@ class ServerManagerTcp(port: Int) :ServerManager {
         return flow {
             while (isOpen()) {
                 val socket = serverSocket.accept()
+                println(socket.port)
                 val clientConnectionTcp = ConnectionTcp(socket)
                 emit(clientConnectionTcp)
             }
