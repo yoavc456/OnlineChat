@@ -4,42 +4,52 @@ import connection.socket_tcp.ConnectionTcp
 import kotlinx.coroutines.*
 import messages.*
 
-class ChatClient {
+class ChatClient() {
 
-    val clientDataManager = ClientDataManager
     val IP = "localhost"
     val PORT = 1234
 
-    constructor() {
+    init {
         try {
             createConnection()
             startReceivingMessagesFromServer()
             connectedToServerLoop()
         } catch (e: Exception) {
             println("Disconnected From The Server!")
-            clientDataManager.stage = Stage.CLOSE
+            ClientDataManager.stage = Stage.CLOSE
         } finally {
-            clientDataManager.closeClient()
+            ClientDataManager.closeClient()
         }
     }
 
     private fun createConnection(){
-        clientDataManager.serverConnection = ConnectionTcp(IP, PORT)
+        try{
+            ClientDataManager.serverConnection = ConnectionTcp(IP, PORT)
+        }catch (e:Exception){
+            println("Failed to connect to the server!")
+            println("Press 'c' to close. Press any other button to try again.")
+
+            if(readln() == "c")
+                return
+
+            createConnection()
+        }
     }
 
     private fun startReceivingMessagesFromServer() {
-        GlobalScope.launch {
+        val scope = CoroutineScope(Dispatchers.IO)
+        scope.launch {
             receiveFromServerCoroutine()
         }
     }
 
     private fun connectedToServerLoop() = runBlocking {
-        while (clientDataManager.serverConnection!!.isOpen() && clientDataManager.stage != Stage.CLOSE) {
-            if (clientDataManager.stage == Stage.USER_ENTRY)
+        while (ClientDataManager.serverConnection.isOpen() && ClientDataManager.stage != Stage.CLOSE) {
+            if (ClientDataManager.stage == Stage.USER_ENTRY)
                 userEntryHandler()
-            else if (clientDataManager.stage == Stage.CHAT_ENTRY)
+            else if (ClientDataManager.stage == Stage.CHAT_ENTRY)
                 chatEntryHandler()
-            else if (clientDataManager.stage == Stage.TEXT_MESSAGES)
+            else if (ClientDataManager.stage == Stage.TEXT_MESSAGES)
                 textMessagesHandler()
         }
     }
@@ -54,11 +64,11 @@ class ChatClient {
         else if (answer.equals("r"))
             result = clientRegister()
         else if (answer.equals("c")) {
-            clientDataManager.stage = Stage.CLOSE
+            ClientDataManager.stage = Stage.CLOSE
         }
 
         if (result)
-            clientDataManager.stage = Stage.CHAT_ENTRY
+            ClientDataManager.stage = Stage.CHAT_ENTRY
     }
 
     private suspend fun chatEntryHandler() {
@@ -71,21 +81,21 @@ class ChatClient {
             result = clientCreateChat()
         } else if (answer.equals("c")) {
             result = false
-            clientDataManager.stage = Stage.CLOSE
+            ClientDataManager.stage = Stage.CLOSE
         } else if (answer.equals("o")) {
-            clientDataManager.serverConnection!!.send(
+            ClientDataManager.serverConnection.send(
                 Message(
                     stage = Stage.CHAT_ENTRY, action = MessageAction.OUT_OF_USER,
-                    chatname = clientDataManager.chatName, username = clientDataManager.userName
+                    chatname = ClientDataManager.chatName, username = ClientDataManager.userName
                 )
             )
-            clientDataManager.stage = Stage.USER_ENTRY
-            clientDataManager.userName = ""
+            ClientDataManager.stage = Stage.USER_ENTRY
+            ClientDataManager.userName = ""
 
         }
 
         if (result)
-            clientDataManager.stage = Stage.TEXT_MESSAGES
+            ClientDataManager.stage = Stage.TEXT_MESSAGES
     }
 
     private fun textMessagesHandler() {

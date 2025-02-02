@@ -10,15 +10,15 @@ object ClientDataManager{
     var admin: Boolean = false
     var stage = Stage.USER_ENTRY
 
-    var serverConnection:Connection? = null
+    lateinit var serverConnection:Connection
 
     fun closeClient() {
-        if(serverConnection == null)
+        if(!::serverConnection.isInitialized)
             return
 
-        serverConnection!!.send(Message(Stage.CLOSE, username = userName, chatname = chatName))
+        serverConnection.send(Message(Stage.CLOSE, username = userName, chatname = chatName))
         stage = Stage.CLOSE
-        serverConnection!!.close()
+        serverConnection.close()
 
         println("CLOSE")
     }

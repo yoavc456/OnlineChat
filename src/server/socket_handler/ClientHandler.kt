@@ -7,7 +7,6 @@ import messages.Message
 import server.ServerDataManager
 
 class ClientHandler(private val clientConnection: Connection){
-    private val serverDataManager = ServerDataManager
     private var msg: Message? = null
     private var run = true
 
@@ -44,9 +43,9 @@ class ClientHandler(private val clientConnection: Connection){
 
     private fun closeClient(){
         if(msg != null){
-            serverDataManager.CHATS.remove(msg!!.chatname)?.remove(msg!!.username)
-            serverDataManager.LOGGED_IN_CLIENTS.remove(msg!!.username)
-            serverDataManager.CLIENT_CONNECTIONS.remove(clientConnection)
+            ServerDataManager.CHATS.remove(msg!!.chatname)?.remove(msg!!.username)
+            ServerDataManager.LOGGED_IN_CLIENTS.remove(msg!!.username)
+            ServerDataManager.CLIENT_CONNECTIONS.remove(clientConnection)
         }
 
         clientConnection.close()

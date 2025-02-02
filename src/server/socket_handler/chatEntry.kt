@@ -1,14 +1,9 @@
 package server.socket_handler
 
 import connection.Connection
-import server.database.MongoDBManager
 import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
-import server.database.DatabaseManager
-
-private val serverDataManager = ServerDataManager
-private val mongoDBManager:DatabaseManager = MongoDBManager
 
 suspend fun chatEntryHandler(clientConnection: Connection, msg: Message) {
     if (msg.action == MessageAction.ENTER_CHAT) {
@@ -17,7 +12,7 @@ suspend fun chatEntryHandler(clientConnection: Connection, msg: Message) {
         val entryAcceptMessage: String = if (result) "Entered Chat" else "Chat Does Not Exist"
         if (result)
             clientConnection.send(Message(success = true, message = entryAcceptMessage,
-                chatMessages = mongoDBManager.loadMessages(msg.chatname), admin = mongoDBManager.getChatAdmin(msg.chatname)
+                chatMessages = ServerDataManager.databaseManager.loadMessages(msg.chatname), admin = ServerDataManager.databaseManager.getChatAdmin(msg.chatname)
             ))
         else
             clientConnection.send(Message(success = false, message = entryAcceptMessage))
@@ -30,18 +25,18 @@ suspend fun chatEntryHandler(clientConnection: Connection, msg: Message) {
     }
 
     if (msg.action == MessageAction.OUT_OF_USER) {
-        serverDataManager.LOGGED_IN_CLIENTS.remove(msg.username)
+        ServerDataManager.LOGGED_IN_CLIENTS.remove(msg.username)
     }
 }
 
 private suspend fun enterChat(msg: Message): Boolean {
-    if (mongoDBManager.enterChat(msg.chatname, msg.username)) {
-        if (serverDataManager.CHATS.get(msg.chatname) == null) {
+    if (ServerDataManager.databaseManager.enterChat(msg.chatname, msg.username)) {
+        if (ServerDataManager.CHATS.get(msg.chatname) == null) {
             val chatUsers = mutableListOf<String>()
             chatUsers.add(msg.username)
-            serverDataManager.CHATS.put(msg.chatname, chatUsers)
+            ServerDataManager.CHATS.put(msg.chatname, chatUsers)
         } else {
-            serverDataManager.CHATS.get(msg.chatname)!!.add(msg.username)
+            ServerDataManager.CHATS.get(msg.chatname)!!.add(msg.username)
         }
         return true
     }
@@ -50,10 +45,10 @@ private suspend fun enterChat(msg: Message): Boolean {
 }
 
 private suspend fun createChat(msg: Message): Boolean {
-    if (mongoDBManager.createChat(msg.chatname, msg.username)) {
+    if (ServerDataManager.databaseManager.createChat(msg.chatname, msg.username)) {
         val chatUsers = mutableListOf<String>()
         chatUsers.add(msg.username)
-        serverDataManager.CHATS.put(msg.chatname, chatUsers)
+        ServerDataManager.CHATS.put(msg.chatname, chatUsers)
         return true
     }
 

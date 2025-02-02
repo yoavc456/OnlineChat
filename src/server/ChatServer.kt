@@ -18,7 +18,6 @@ class ChatServer {
     private val PORT: Int = 1234
 
     private val serverManager:ServerManager = ServerManagerTcp(PORT)
-    private val serverDataManager: ServerDataManager = ServerDataManager
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
@@ -29,7 +28,7 @@ class ChatServer {
 
         readln()
 
-        serverDataManager.close()
+        ServerDataManager.close()
         serverManager.close()
     }
 

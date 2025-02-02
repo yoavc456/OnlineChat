@@ -1,14 +1,11 @@
 package client
 
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import messages.Message
 import messages.MessageAction
 import messages.Stage
-import java.util.concurrent.TimeoutException
 
-val clientDataManager = ClientDataManager
-var lastMessage: Message = Message(read = true)
-val maxWaitingTimeForMessage: Long = 3000
+var serverMessage = Channel<Message>(1)
 
 suspend fun clientLogIn(): Boolean {
     print("UserName: ")
@@ -16,7 +13,7 @@ suspend fun clientLogIn(): Boolean {
     print("Password: ")
     val password: String = readln()
 
-    clientDataManager.serverConnection!!.send(
+    ClientDataManager.serverConnection.send(
         Message(
             stage = Stage.USER_ENTRY,
             action = MessageAction.LOG_IN,
@@ -25,11 +22,11 @@ suspend fun clientLogIn(): Boolean {
         )
     )
 
-    val msg = getLastMessage(maxWaitingTimeForMessage)
+    val msg = serverMessage.receive()
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.userName = userName
+        ClientDataManager.userName = userName
         return true
     }
 
@@ -49,7 +46,7 @@ suspend fun clientRegister(): Boolean {
         return false
     }
 
-    clientDataManager.serverConnection!!.send(
+    ClientDataManager.serverConnection.send(
         Message(
             stage = Stage.USER_ENTRY,
             action = MessageAction.REGISTER,
@@ -58,11 +55,11 @@ suspend fun clientRegister(): Boolean {
         )
     )
 
-    val msg = getLastMessage(maxWaitingTimeForMessage)
+    val msg = serverMessage.receive()
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.userName = userName
+        ClientDataManager.userName = userName
         return true
     }
 
@@ -73,24 +70,24 @@ suspend fun clientEnterToChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    clientDataManager.serverConnection!!.send(
+    ClientDataManager.serverConnection.send(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
-            username = clientDataManager.userName, chatname = chatName
+            username = ClientDataManager.userName, chatname = chatName
         )
     )
 
-    val msg = getLastMessage(maxWaitingTimeForMessage)
+    val msg = serverMessage.receive()
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.chatName = chatName
+        ClientDataManager.chatName = chatName
 
         println(msg.admin)
         for (m in msg.chatMessages!!) {
-            clientDataManager.handleReceivedTextMessage(m)
+            ClientDataManager.handleReceivedTextMessage(m)
         }
-        clientDataManager.admin = msg.admin.equals(clientDataManager.userName)
+        ClientDataManager.admin = msg.admin.equals(ClientDataManager.userName)
         return true
     }
 
@@ -101,19 +98,19 @@ suspend fun clientCreateChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    clientDataManager.serverConnection!!.send(
+    ClientDataManager.serverConnection.send(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
-            username = clientDataManager.userName, chatname = chatName
+            username = ClientDataManager.userName, chatname = chatName
         )
     )
 
-    val msg = getLastMessage(maxWaitingTimeForMessage)
+    val msg = serverMessage.receive()
 
     println(msg.message)
     if (msg.success) {
-        clientDataManager.chatName = chatName
-        clientDataManager.admin = true
+        ClientDataManager.chatName = chatName
+        ClientDataManager.admin = true
         return true
     }
 
@@ -121,88 +118,85 @@ suspend fun clientCreateChat(): Boolean {
 }
 
 suspend fun receiveFromServerCoroutine() {
-    clientDataManager.serverConnection!!.receive().collect{
-        msg ->
-        if (clientDataManager.stage == Stage.TEXT_MESSAGES)
-            clientDataManager.handleReceivedTextMessage(msg)
+    ClientDataManager.serverConnection.receive().collect { msg ->
+        if (ClientDataManager.stage == Stage.TEXT_MESSAGES)
+            ClientDataManager.handleReceivedTextMessage(msg)
         else
-            lastMessage = msg
+            serverMessage.send(msg)
     }
 }
 
 fun handleTextInput(msg: String) {
     if (msg.equals("//")) {
-        if (clientDataManager.admin)
-            println("c(Close)/o(out)/pu(public)/pr(private)/a(add)")
+        if (ClientDataManager.admin)
+            println("c (Close) / o (out) / pu (public) / pr(private) / a(add)")
         else
-            println("c(Close)/o(out)")
+            println("c (Close) / o(out) ")
 
         val answer: String = readln()
         openTextInputMenu(answer)
         return
     }
 
-    clientDataManager.serverConnection!!.send(
+    ClientDataManager.serverConnection.send(
         Message(
             stage = Stage.TEXT_MESSAGES,
             action = MessageAction.TEXT,
             message = msg,
-            username = clientDataManager.userName,
-            chatname = clientDataManager.chatName
+            username = ClientDataManager.userName,
+            chatname = ClientDataManager.chatName
         )
     )
 }
 
 private fun openTextInputMenu(msg: String) {
-    if (msg.equals("c"))
-        clientDataManager.stage = Stage.CLOSE
-    else if (msg.equals("o")) {
-        clientDataManager.serverConnection!!.send(
-            Message(
-                stage = Stage.TEXT_MESSAGES, action = MessageAction.OUT_OF_CHAT,
-                chatname = clientDataManager.chatName, username = clientDataManager.userName
+    when (msg) {
+        "c" -> ClientDataManager.stage = Stage.CLOSE
+        "o" -> {
+            ClientDataManager.serverConnection.send(
+                Message(
+                    stage = Stage.TEXT_MESSAGES,
+                    action = MessageAction.OUT_OF_CHAT,
+                    chatname = ClientDataManager.chatName,
+                    username = ClientDataManager.userName
+                )
             )
-        )
-        clientDataManager.stage = Stage.CHAT_ENTRY
-        clientDataManager.chatName = ""
-    } else if (msg.equals("pu") && clientDataManager.admin)
-        clientDataManager.serverConnection!!.send(
+            ClientDataManager.stage = Stage.CHAT_ENTRY
+            ClientDataManager.chatName = ""
+        }
+    }
+    if (!ClientDataManager.admin)
+        return
+
+    when (msg) {
+        "pu" -> ClientDataManager.serverConnection.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PUBLIC_CHAT,
-                chatname = clientDataManager.chatName
+                chatname = ClientDataManager.chatName
             )
         )
-    else if (msg.equals("pr") && clientDataManager.admin)
-        clientDataManager.serverConnection!!.send(
+
+        "pr" -> ClientDataManager.serverConnection.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PRIVATE_CHAT,
-                chatname = clientDataManager.chatName
+                chatname = ClientDataManager.chatName
             )
         )
-    else if (msg.equals("a") && clientDataManager.admin) {
-        print("User Name: ")
-        val username: String = readln()
-        clientDataManager.serverConnection!!.send(
-            Message(
-                stage = Stage.TEXT_MESSAGES,
-                action = MessageAction.ADD_USER_TO_CHAT,
-                receiverUsername = username,
-                chatname = clientDataManager.chatName
-            )
-        )
-    }
-}
 
-private suspend fun getLastMessage(maxWaitingTimeMillis: Long): Message {
-    val time = System.currentTimeMillis()
-    while (System.currentTimeMillis() - time < maxWaitingTimeMillis) {
-        if (!lastMessage.read) {
-            lastMessage.read = true
-            return lastMessage
+        "a" -> {
+            print("User Name: ")
+            val username: String = readln()
+            ClientDataManager.serverConnection.send(
+                Message(
+                    stage = Stage.TEXT_MESSAGES,
+                    action = MessageAction.ADD_USER_TO_CHAT,
+                    receiverUsername = username,
+                    chatname = ClientDataManager.chatName
+                )
+            )
         }
-        delay(100)
     }
-    throw TimeoutException()
+
 }
