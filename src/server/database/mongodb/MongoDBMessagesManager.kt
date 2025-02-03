@@ -1,7 +1,6 @@
 package server.database.mongodb
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
-import messages.Message
 import messages.MessageAction
 import server.database.DatabaseManager
 import server.database.DatabaseMessagesManager

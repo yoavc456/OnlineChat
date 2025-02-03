@@ -1,9 +1,8 @@
 package messages
 
 enum class Stage {
-    USER_ENTRY,
-    CHAT_ENTRY,
-    TEXT_MESSAGES,
+    USER_ENTRY, LOG_IN, REGISTER,
+    CHAT_ENTRY, ENTER_TO_CHAT, CREATE_CHAT,
+    TEXT_MESSAGES, CHAT_MENU, CHAT_MENU_ADMIN,
     CLOSE,
-    NULL
 }

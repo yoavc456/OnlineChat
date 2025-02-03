@@ -4,7 +4,7 @@ import connection.socket_tcp.ConnectionTcp
 import kotlinx.coroutines.*
 import messages.*
 
-class ChatClient() {
+class ChatClient {
 
     val IP = "localhost"
     val PORT = 1234
@@ -59,12 +59,12 @@ class ChatClient() {
         val answer = readln()
 
         var result = false
-        if (answer.equals("l"))
-            result = clientLogIn()
-        else if (answer.equals("r"))
-            result = clientRegister()
-        else if (answer.equals("c")) {
-            ClientDataManager.stage = Stage.CLOSE
+        when (answer) {
+            "l" -> result = clientLogIn()
+            "r" -> result = clientRegister()
+            "c" -> {
+                ClientDataManager.stage = Stage.CLOSE
+            }
         }
 
         if (result)

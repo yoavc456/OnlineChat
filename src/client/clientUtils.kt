@@ -1,7 +1,7 @@
 package client
 
+import client.ClientDataManager.serverConnection
 import kotlinx.coroutines.channels.Channel
-import messages.Message
 import messages.MessageAction
 import messages.Stage
 
@@ -13,7 +13,7 @@ suspend fun clientLogIn(): Boolean {
     print("Password: ")
     val password: String = readln()
 
-    ClientDataManager.serverConnection.send(
+    serverConnection.send(
         Message(
             stage = Stage.USER_ENTRY,
             action = MessageAction.LOG_IN,
@@ -46,7 +46,7 @@ suspend fun clientRegister(): Boolean {
         return false
     }
 
-    ClientDataManager.serverConnection.send(
+    serverConnection.send(
         Message(
             stage = Stage.USER_ENTRY,
             action = MessageAction.REGISTER,
@@ -70,7 +70,7 @@ suspend fun clientEnterToChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    ClientDataManager.serverConnection.send(
+    serverConnection.send(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.ENTER_CHAT,
             username = ClientDataManager.userName, chatname = chatName
@@ -80,7 +80,7 @@ suspend fun clientEnterToChat(): Boolean {
     val msg = serverMessage.receive()
 
     println(msg.message)
-    if (msg.success) {
+    if (msg.success) { // flip if
         ClientDataManager.chatName = chatName
 
         println(msg.admin)
@@ -98,7 +98,7 @@ suspend fun clientCreateChat(): Boolean {
     print("Chat Name: ")
     val chatName: String = readln()
 
-    ClientDataManager.serverConnection.send(
+    serverConnection.send(
         Message(
             stage = Stage.CHAT_ENTRY, action = MessageAction.CREATE_CHAT,
             username = ClientDataManager.userName, chatname = chatName
@@ -118,7 +118,7 @@ suspend fun clientCreateChat(): Boolean {
 }
 
 suspend fun receiveFromServerCoroutine() {
-    ClientDataManager.serverConnection.receive().collect { msg ->
+    serverConnection.receive().collect { msg ->
         if (ClientDataManager.stage == Stage.TEXT_MESSAGES)
             ClientDataManager.handleReceivedTextMessage(msg)
         else
@@ -138,7 +138,7 @@ fun handleTextInput(msg: String) {
         return
     }
 
-    ClientDataManager.serverConnection.send(
+    serverConnection.send(
         Message(
             stage = Stage.TEXT_MESSAGES,
             action = MessageAction.TEXT,
@@ -153,7 +153,7 @@ private fun openTextInputMenu(msg: String) {
     when (msg) {
         "c" -> ClientDataManager.stage = Stage.CLOSE
         "o" -> {
-            ClientDataManager.serverConnection.send(
+            serverConnection.send(
                 Message(
                     stage = Stage.TEXT_MESSAGES,
                     action = MessageAction.OUT_OF_CHAT,
@@ -169,7 +169,7 @@ private fun openTextInputMenu(msg: String) {
         return
 
     when (msg) {
-        "pu" -> ClientDataManager.serverConnection.send(
+        "pu" -> serverConnection.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PUBLIC_CHAT,
@@ -177,7 +177,7 @@ private fun openTextInputMenu(msg: String) {
             )
         )
 
-        "pr" -> ClientDataManager.serverConnection.send(
+        "pr" -> serverConnection.send(
             Message(
                 stage = Stage.TEXT_MESSAGES,
                 action = MessageAction.PRIVATE_CHAT,
@@ -188,7 +188,7 @@ private fun openTextInputMenu(msg: String) {
         "a" -> {
             print("User Name: ")
             val username: String = readln()
-            ClientDataManager.serverConnection.send(
+            serverConnection.send(
                 Message(
                     stage = Stage.TEXT_MESSAGES,
                     action = MessageAction.ADD_USER_TO_CHAT,

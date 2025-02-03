@@ -1,7 +1,6 @@
 package server.socket_handler
 
 import connection.Connection
-import messages.Message
 import messages.MessageAction
 import server.ServerDataManager
 
