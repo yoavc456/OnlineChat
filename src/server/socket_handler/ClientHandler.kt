@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import messages.*
 import messages.Stage.*
 import messages.client_msg.ClientMessage
+import messages.server_msg.MessageInstruction
 import messages.server_msg.MessageInstruction.*
 import messages.server_msg.ServerMessage
 import server.ServerDataManager
@@ -54,6 +55,13 @@ class ClientHandler(private val clientConnection: Connection) {
     }
 
     private fun send() {
+        if(stage == Stage.CLOSE){
+            val msg = ServerMessage(instruction = MessageInstruction.CLOSE)
+            clientConnection.send(msg)
+            clientConnection.close()
+            return
+        }
+
         val msg = ServerMessage(clientMessageFunctions.get(stage), ACTIVE)
         clientConnection.send(msg)
     }

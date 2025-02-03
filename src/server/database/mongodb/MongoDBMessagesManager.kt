@@ -1,7 +1,10 @@
 package server.database.mongodb
 
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
+import messages.Message
 import messages.MessageAction
+import messages.server_msg.MessageInstruction
+import messages.server_msg.ServerMessage
 import server.database.DatabaseManager
 import server.database.DatabaseMessagesManager
 
@@ -14,13 +17,13 @@ class MongoDBMessagesManager(val database:MongoDatabase):DatabaseMessagesManager
         collection.insertOne(message)
     }
 
-    override suspend fun loadMessages(chatname: String): List<Message> {
+    override suspend fun loadMessages(chatname: String): List<ServerMessage> {
         val collectionName = getChatMessagesCollectionName(chatname)
         val collection = database.getCollection<MongodbChatMessage>(collectionName)
-        val result = mutableListOf<Message>()
+        val result = mutableListOf<ServerMessage>()
 
         collection.find<MongodbChatMessage>().collect {
-            result.add(Message(action = MessageAction.TEXT, message = it.msg, username = it.sender))
+            result.add(ServerMessage(instruction = MessageInstruction.PRINT, message = it.msg))
         }
         return result
     }

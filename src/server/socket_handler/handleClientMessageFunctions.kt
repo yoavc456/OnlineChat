@@ -23,7 +23,7 @@ suspend fun logInStage(message: ClientMessage, uuid: UUID): Stage {
         ServerDataManager.USERNAMES.get(message.username) == null
     ) {
         ServerDataManager.USERNAMES.put(message.username, uuid)
-        ServerDataManager.UUID_TO_CHAT.put(uuid, message.username)
+        ServerDataManager.UUID_TO_USERNAME.put(uuid, message.username)
         return CHAT_ENTRY
     }
     return USER_ENTRY
@@ -35,7 +35,7 @@ suspend fun registerStage(message: ClientMessage, uuid: UUID): Stage {
 
 
     ServerDataManager.USERNAMES.put(message.username, uuid)
-    ServerDataManager.UUID_TO_CHAT.put(uuid, message.username)
+    ServerDataManager.UUID_TO_USERNAME.put(uuid, message.username)
     return CHAT_ENTRY
 }
 
@@ -105,6 +105,7 @@ suspend fun textMessagesChatMenuStage(message: ClientMessage, uuid: UUID): Stage
         "c" -> return CLOSE
         "o" -> {
             gettingOutOfChat(uuid)
+            return CHAT_ENTRY
         }
     }
 
@@ -117,6 +118,7 @@ suspend fun textMessagesChatMenuAdminStage(message: ClientMessage, uuid: UUID): 
         "c" -> return CLOSE
         "o" -> {
             gettingOutOfChat(uuid)
+            return CHAT_ENTRY
         }
 
         "pu" -> {
@@ -148,7 +150,7 @@ private fun gettingOutOfUser(uuid: UUID) {
 
 private fun gettingOutOfChat(uuid: UUID){
     val username:String = ServerDataManager.UUID_TO_USERNAME.get(uuid).toString()
-    val chatName = ServerDataManager.UUID_TO_CHAT.get(uuid)
+    val chatName:String = ServerDataManager.UUID_TO_CHAT.get(uuid).toString()
 
     ServerDataManager.CHATS.get(chatName)?.remove(username)
     ServerDataManager.UUID_TO_CHAT.remove(uuid)
