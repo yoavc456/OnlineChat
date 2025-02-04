@@ -5,7 +5,7 @@ import connection.socket_tcp.ServerManagerTcp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import server.socket_handler.ClientHandler
+import server.client_handler.ClientHandler
 
 /**
  * Open the server.

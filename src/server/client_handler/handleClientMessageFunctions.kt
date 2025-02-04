@@ -1,4 +1,4 @@
-package server.socket_handler
+package server.client_handler
 
 import messages.MessageAction
 import messages.Stage
@@ -6,13 +6,14 @@ import messages.Stage.*
 import messages.client_msg.ClientMessage
 import messages.server_msg.ServerMessage
 import server.ServerDataManager
+import server.client_handler.client_menus.MenuOptions
 import java.util.UUID
 
 suspend fun userEntryStage(message: ClientMessage, uuid: UUID): Stage {
     when (message.message) {
-        "l" -> return LOG_IN
-        "r" -> return REGISTER
-        "c" -> return CLOSE
+        MenuOptions.LOG_IN.input -> return LOG_IN
+        MenuOptions.REGISTER.input -> return REGISTER
+        MenuOptions.CLOSE.input -> return CLOSE
     }
 
     return USER_ENTRY
@@ -30,10 +31,9 @@ suspend fun logInStage(message: ClientMessage, uuid: UUID): Stage {
 }
 
 suspend fun registerStage(message: ClientMessage, uuid: UUID): Stage {
-    if (!ServerDataManager.databaseManager.createUser(message.username, message.password))
+    if (!ServerDataManager.databaseManager.createUser(message.username, message.password)){
         return USER_ENTRY
-
-
+    }
     ServerDataManager.USERNAMES.put(message.username, uuid)
     ServerDataManager.UUID_TO_USERNAME.put(uuid, message.username)
     return CHAT_ENTRY
@@ -41,11 +41,11 @@ suspend fun registerStage(message: ClientMessage, uuid: UUID): Stage {
 
 suspend fun chatEntryStage(message: ClientMessage, uuid: UUID): Stage {
     when (message.message) {
-        "e" -> return ENTER_TO_CHAT
-        "cr" -> return CREATE_CHAT
-        "c" -> return CLOSE
+        MenuOptions.ENTER_CHAT.input -> return ENTER_TO_CHAT
+        MenuOptions.CREATE_CHAT.input -> return CREATE_CHAT
+        MenuOptions.CLOSE.input -> return CLOSE
 
-        "o" -> {
+        MenuOptions.LOG_OUT_USER.input -> {
             gettingOutOfUser(uuid)
             return USER_ENTRY
         }
@@ -58,8 +58,9 @@ suspend fun enterToChatStage(message: ClientMessage, uuid: UUID): Stage {
     val chatName = message.chatName
     val username: String = ServerDataManager.UUID_TO_USERNAME.get(uuid).toString()
 
-    if (!ServerDataManager.databaseManager.enterChat(chatName, username))
+    if (!ServerDataManager.databaseManager.enterChat(chatName, username)){
         return CHAT_ENTRY
+    }
 
     if (ServerDataManager.CHATS.get(chatName) == null) {
         addChatToServer(username, chatName)
@@ -69,15 +70,16 @@ suspend fun enterToChatStage(message: ClientMessage, uuid: UUID): Stage {
 
     ServerDataManager.UUID_TO_CHAT.put(uuid, chatName)
 
-    return TEXT_MESSAGES
+    return LOAD_CHAT
 }
 
 suspend fun createChatStage(message: ClientMessage, uuid: UUID): Stage {
     val chatName = message.chatName
     val username: String = ServerDataManager.UUID_TO_USERNAME.get(uuid).toString()
 
-    if (!ServerDataManager.databaseManager.createChat(chatName, username))
+    if (!ServerDataManager.databaseManager.createChat(chatName, username)){
         return CHAT_ENTRY
+    }
 
     addChatToServer(username, chatName)
     ServerDataManager.UUID_TO_CHAT.put(uuid, chatName)
@@ -102,8 +104,8 @@ suspend fun textMessagesStage(message: ClientMessage, uuid: UUID): Stage {
 
 suspend fun textMessagesChatMenuStage(message: ClientMessage, uuid: UUID): Stage {
     when (message.message) {
-        "c" -> return CLOSE
-        "o" -> {
+        MenuOptions.CLOSE.input -> return CLOSE
+        MenuOptions.LOG_OUT_CHAT.input -> {
             gettingOutOfChat(uuid)
             return CHAT_ENTRY
         }
@@ -115,24 +117,33 @@ suspend fun textMessagesChatMenuStage(message: ClientMessage, uuid: UUID): Stage
 suspend fun textMessagesChatMenuAdminStage(message: ClientMessage, uuid: UUID): Stage {
     val chatName:String = ServerDataManager.UUID_TO_CHAT.get(uuid).toString()
     when (message.message) {
-        "c" -> return CLOSE
-        "o" -> {
+        MenuOptions.CLOSE.input -> return CLOSE
+        MenuOptions.LOG_OUT_CHAT.input -> {
             gettingOutOfChat(uuid)
             return CHAT_ENTRY
         }
 
-        "pu" -> {
+        MenuOptions.CHAT_TO_PUBLIC.input -> {
             ServerDataManager.databaseManager.setChatPrivacy(MessageAction.PUBLIC_CHAT, chatName)
         }
 
-        "pr" -> {
+        MenuOptions.CHAT_TO_PRIVATE.input -> {
             ServerDataManager.databaseManager.setChatPrivacy(MessageAction.PRIVATE_CHAT, chatName)
         }
 
-        "a" -> {
-            ServerDataManager.databaseManager.addUserToChat(chatName, message.secondUsername)
+        MenuOptions.ADD_USER_TO_CHAT.input -> {
+            return ADD_USER_TO_CHAT
         }
     }
+
+    return TEXT_MESSAGES
+}
+
+suspend fun addUserToChatStage(message: ClientMessage, uuid: UUID):Stage{
+    val username = message.secondUsername
+    val chatName:String = ServerDataManager.UUID_TO_CHAT.get(uuid).toString()
+
+    ServerDataManager.databaseManager.addUserToChat(chatName, username)
 
     return TEXT_MESSAGES
 }
@@ -156,10 +167,13 @@ private fun gettingOutOfChat(uuid: UUID){
     ServerDataManager.UUID_TO_CHAT.remove(uuid)
 }
 
-private fun sendTextMessage(sender: String, chatName: String, msg: String) {
-    val message = ServerMessage(message = msg)
+private suspend fun sendTextMessage(sender: String, chatName: String, msg: String) {
+    val message = ServerMessage(message = "$sender: $msg")
+    ServerDataManager.databaseManager.saveMessage(chatName, sender, msg)
     for (u in ServerDataManager.CHATS.get(chatName)!!) {
-        val uuid = ServerDataManager.USERNAMES.get(u)
-        ServerDataManager.CONNECTIONS.get(uuid)?.send(message)
+        if(u!=sender){
+            val uuid = ServerDataManager.USERNAMES.get(u)
+            ServerDataManager.CONNECTIONS.get(uuid)?.send(message)
+        }
     }
 }

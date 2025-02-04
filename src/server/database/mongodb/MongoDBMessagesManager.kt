@@ -23,7 +23,7 @@ class MongoDBMessagesManager(val database:MongoDatabase):DatabaseMessagesManager
         val result = mutableListOf<ServerMessage>()
 
         collection.find<MongodbChatMessage>().collect {
-            result.add(ServerMessage(instruction = MessageInstruction.PRINT, message = it.msg))
+            result.add(ServerMessage(instruction = MessageInstruction.PRINT, message = "${it.sender}: ${it.msg}"))
         }
         return result
     }

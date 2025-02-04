@@ -13,7 +13,6 @@ class ChatClient {
         try {
             createConnection()
             startReceivingMessagesFromServer()
-
             while (ClientDataManager.serverConnection.isOpen()){
 
             }

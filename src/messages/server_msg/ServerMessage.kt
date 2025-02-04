@@ -9,5 +9,5 @@ data class ServerMessage(
     val createMessage: (() -> ClientMessage)? = null,
     val instruction: MessageInstruction = PRINT,
     val message: String = "",
-    val chatMessages: List<ServerMessage>? = null
+    val chatMessages: List<Message>? = null
 ) : Message, Serializable

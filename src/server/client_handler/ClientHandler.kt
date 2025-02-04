@@ -1,4 +1,4 @@
-package server.socket_handler
+package server.client_handler
 
 import connection.Connection
 import kotlinx.coroutines.runBlocking
@@ -22,9 +22,9 @@ class ClientHandler(private val clientConnection: Connection) {
             CREATE_CHAT to ::clientGetChatName,
             TEXT_MESSAGES to ::clientSendTextMessage,
             CHAT_MENU to ::clientChatMenu,
-            CHAT_MENU_ADMIN to ::clientChatMenuAdmin
+            CHAT_MENU_ADMIN to ::clientChatMenuAdmin,
+            ADD_USER_TO_CHAT to ::clientAddUserToChat
         )
-
         val handleMessageFunctions: Map<Stage, suspend (ClientMessage, UUID) -> Stage> = mapOf(
             USER_ENTRY to ::userEntryStage,
             LOG_IN to ::logInStage,
@@ -34,7 +34,8 @@ class ClientHandler(private val clientConnection: Connection) {
             CREATE_CHAT to ::createChatStage,
             TEXT_MESSAGES to ::textMessagesStage,
             CHAT_MENU to ::textMessagesChatMenuStage,
-            CHAT_MENU_ADMIN to ::textMessagesChatMenuAdminStage
+            CHAT_MENU_ADMIN to ::textMessagesChatMenuAdminStage,
+            ADD_USER_TO_CHAT to ::addUserToChatStage
         )
     }
 
@@ -54,12 +55,21 @@ class ClientHandler(private val clientConnection: Connection) {
         }
     }
 
-    private fun send() {
-        if(stage == Stage.CLOSE){
+    private suspend fun send() {
+        if (stage == Stage.CLOSE) {
             val msg = ServerMessage(instruction = MessageInstruction.CLOSE)
             clientConnection.send(msg)
             clientConnection.close()
             return
+        }
+
+        if (stage == Stage.LOAD_CHAT) {
+            val msg = ServerMessage(
+                instruction = MessageInstruction.LOAD_CHAT,
+                chatMessages = ServerDataManager.databaseManager.loadMessages(ServerDataManager.UUID_TO_CHAT.get(uuid)!!)
+            )
+            clientConnection.send(msg)
+            stage = TEXT_MESSAGES
         }
 
         val msg = ServerMessage(clientMessageFunctions.get(stage), ACTIVE)
