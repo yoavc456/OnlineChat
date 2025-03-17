@@ -5,5 +5,5 @@ interface DatabaseUsersManager {
     suspend fun doesUsernameExist(username: String): Boolean
     suspend fun createUser(username: String, password: String): Boolean
 
-    //aaabbb
+    //aaabbb // ffdfadsfdsf
 }
